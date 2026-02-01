@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- WiFi scanning permissions -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access to scan for WiFi networks</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to scan for WiFi networks</string>
 </dict>
 </plist>
