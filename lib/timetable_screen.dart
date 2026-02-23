@@ -1,7 +1,35 @@
 import 'package:flutter/material.dart';
 
-class TimetableScreen extends StatelessWidget {
+class TimetableScreen extends StatefulWidget {
   const TimetableScreen({Key? key}) : super(key: key);
+
+  @override
+  State<TimetableScreen> createState() => _TimetableScreenState();
+}
+
+class _TimetableScreenState extends State<TimetableScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -246,20 +274,34 @@ class TimetableScreen extends StatelessWidget {
 
   Widget _buildSubjectCell(String subject, String faculty, String room, String day, String timeSlot) {
     bool isMonday930IP = (day == 'MON' && timeSlot == '9:30 To 10:30' && subject == 'IP');
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: isMonday930IP ? Colors.red.shade100 : null,
-      ),
+    
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            color: isMonday930IP 
+                ? Colors.red.withOpacity(0.3 + (_animation.value * 0.7))
+                : null,
+            border: isMonday930IP 
+                ? Border.all(color: Colors.red.withOpacity(_animation.value), width: 2)
+                : null,
+            borderRadius: isMonday930IP ? BorderRadius.circular(8) : null,
+          ),
+          child: child,
+        );
+      },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             subject,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 11,
+              color: isMonday930IP ? Colors.red.shade800 : null,
             ),
           ),
           const SizedBox(height: 2),
