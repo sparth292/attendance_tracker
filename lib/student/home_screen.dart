@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'wifi_scanner_screen.dart';
+import 'package:attendance_tracker/timetable_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -8,26 +9,52 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WiFi Scanner App'),
-        backgroundColor: Colors.blue,
+        title: const Text('Final Year Project', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFFA50C22),
       ),
       body: const Center(
         child: Text(
-          'Welcome to WiFi Scanner',
+          'App under development',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const WifiScannerScreen(),
-            ),
-          );
-        },
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.wifi_find, color: Colors.white),
+
+      // 🔥 Multiple FABs
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // WiFi Scanner Button
+          FloatingActionButton(
+            heroTag: "wifiBtn",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WifiScannerScreen(),
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFFA50C22),
+            child: const Icon(Icons.wifi_find, color: Colors.white),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Timetable Button
+          FloatingActionButton(
+            heroTag: "timetableBtn",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TimetableScreen(),
+                ),
+              );
+            },
+            backgroundColor: const Color(0xFFA50C22),
+            child: const Icon(Icons.schedule, color: Colors.white),
+          ),
+        ],
       ),
     );
   }

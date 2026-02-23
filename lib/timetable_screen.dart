@@ -7,8 +7,8 @@ class TimetableScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Timetable'),
-        backgroundColor: Colors.red,
+        title: const Text('Timetable Screen'),
+        backgroundColor: const Color(0xFFA50C22),
         foregroundColor: Colors.white,
         centerTitle: true,
       ),

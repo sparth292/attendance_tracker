@@ -56,11 +56,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
         // Try to authenticate
         final didAuthenticate = await localAuth.authenticate(
           localizedReason: 'Authenticate to mark your attendance',
-          options: const AuthenticationOptions(
-            stickyAuth: true,
-            biometricOnly: true,
-            useErrorDialogs: true,
-          ),
+          biometricOnly: true,
         );
         
         if (didAuthenticate && mounted) {
@@ -99,7 +95,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Authentication error: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFFA50C22),
               duration: const Duration(seconds: 4),
             ),
           );
@@ -182,14 +178,15 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WiFi Networks'),
-        backgroundColor: Colors.blue,
+        title: const Text('Connect to Wifi', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFFA50C22),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _startScan,
           ),
         ],
+        iconTheme : const IconThemeData(color: Colors.white)
       ),
       body: _buildBody(),
     );

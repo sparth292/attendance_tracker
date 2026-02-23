@@ -75,7 +75,8 @@ dependencies:
   # WiFi scanning functionality
 
   wifi_scan: ^0.4.1
-
+  local_auth: ^3.0.0
+  geolocator: ^14.0.2
   permission_handler: ^11.3.1
 
 
