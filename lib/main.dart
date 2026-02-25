@@ -1,7 +1,6 @@
+import 'package:attendance_tracker/student/main_screen.dart';
 import 'package:flutter/material.dart';
-import 'student/home_screen.dart';
-import 'timetable_screen.dart';
-import 'student/wifi_scanner_screen.dart';
+
 
 void main(){
   runApp(const MyApp());
@@ -20,7 +19,7 @@ class MyApp extends StatelessWidget{
       ),
       debugShowCheckedModeBanner: false,
       
-      home: const HomeScreen(),
+      home: const MainScreen(),
 
     );
 

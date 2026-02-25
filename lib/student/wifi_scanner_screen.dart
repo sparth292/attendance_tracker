@@ -56,7 +56,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
         // Try to authenticate
         final didAuthenticate = await localAuth.authenticate(
           localizedReason: 'Authenticate to mark your attendance',
-          biometricOnly: true,
+          // biometricOnly: true, // Removed this line
         );
         
         if (didAuthenticate && mounted) {
