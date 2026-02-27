@@ -1,27 +1,24 @@
-import 'package:attendance_tracker/student/main_screen.dart';
+import 'package:attendance_tracker/student/auth_screen.dart';
 import 'package:flutter/material.dart';
 
-
-void main(){
+void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget{
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
-    Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Final Year Project',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        visualDensity : VisualDensity.adaptivePlatformDensity,
-        useMaterial3 : true
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      
-      home: const MainScreen(),
 
+      home: const AuthScreen(),
     );
-
   }
 }

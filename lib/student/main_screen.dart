@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_screen.dart';
 import 'wifi_scanner_screen.dart';
-//import 'profile_screen.dart';
+import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -14,25 +14,20 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    WifiScannerScreen(),
-    // ProfileScreen(),
+  List<Widget> _screens = [
+    const HomeScreen(),
+    const WifiScannerScreen(),
+    const StudentProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
           boxShadow: [
             BoxShadow(
               color: Color(0x0A000000),
@@ -89,9 +84,7 @@ class _MainScreenState extends State<MainScreen> {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFFFFF1F2)
-                : Colors.transparent,
+            color: isActive ? const Color(0xFFFFF1F2) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(

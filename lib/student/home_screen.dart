@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'wifi_scanner_screen.dart';
 import 'timetable_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -43,39 +42,46 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Parth Salunke",
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Parth Salunke",
+                            style: GoogleFonts.inter(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                        Text(
-                          "FCUG23749",
-                          style: GoogleFonts.inter(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
+                          const SizedBox(height: 2),
+                          Text(
+                            "FCUG23749",
+                            style: GoogleFonts.inter(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 12),
                     IconButton(
-                      icon: const Icon(Icons.notifications, color: Colors.white),
+                      icon: const Icon(
+                        Icons.notifications,
+                        color: Colors.white,
+                      ),
                       onPressed: () {},
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Image.asset(
                       "assets/images/somaiyatrust.png",
-                      height: 50,
-                      width: 50,
+                      height: 45,
+                      width: 45,
                     ),
+                    const SizedBox(width: 8),
                   ],
                 ),
               ],
@@ -89,7 +95,6 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 /// ─── CURRENT LECTURE ───────────────────────────────────────
                 _sectionLabel("Current Lecture"),
                 const SizedBox(height: 10),
@@ -190,7 +195,10 @@ class _CurrentLectureCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -228,13 +236,25 @@ class _CurrentLectureCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Column(
               children: [
-                _lectureInfoRow(Icons.person_outline_rounded, "Lecturer", "Manjiri Samant"),
+                _lectureInfoRow(
+                  Icons.person_outline_rounded,
+                  "Lecturer",
+                  "Manjiri Samant",
+                ),
                 const _divider(),
-                _lectureInfoRow(Icons.access_time_rounded, "Time Slot", "10:30 AM – 11:30 AM"),
+                _lectureInfoRow(
+                  Icons.access_time_rounded,
+                  "Time Slot",
+                  "10:30 AM – 11:30 AM",
+                ),
                 const _divider(),
                 _lectureInfoRow(Icons.meeting_room_outlined, "Room No", "207"),
                 const _divider(),
-                _lectureInfoRow(Icons.computer_outlined, "Department", "Computer"),
+                _lectureInfoRow(
+                  Icons.computer_outlined,
+                  "Department",
+                  "Computer",
+                ),
               ],
             ),
           ),
@@ -389,17 +409,26 @@ class _AttendanceCard extends StatelessWidget {
 
                 /// Warning chip — below 80%
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFCA5A5), width: 1),
+                    border: Border.all(
+                      color: const Color(0xFFFCA5A5),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          size: 13, color: Color(0xFFDC2626)),
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 13,
+                        color: Color(0xFFDC2626),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         "Below 80% threshold",
@@ -451,18 +480,28 @@ class _QuickAccessGrid extends StatelessWidget {
         ),
       ),
       _QuickItem(icon: Icons.event_outlined, label: "Events", onTap: () {}),
-      _QuickItem(icon: Icons.menu_book_outlined, label: "Subjects", onTap: () {}),
-      _QuickItem(icon: Icons.receipt_long_outlined, label: "Concession", onTap: () {}),
+      _QuickItem(
+        icon: Icons.menu_book_outlined,
+        label: "Subjects",
+        onTap: () {},
+      ),
+      _QuickItem(
+        icon: Icons.receipt_long_outlined,
+        label: "Concession",
+        onTap: () {},
+      ),
     ];
 
     return Row(
       children: items
-          .map((item) => Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: _buildQuickTile(item),
-                ),
-              ))
+          .map(
+            (item) => Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _buildQuickTile(item),
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -517,5 +556,9 @@ class _QuickItem {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _QuickItem({required this.icon, required this.label, required this.onTap});
+  const _QuickItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 }
