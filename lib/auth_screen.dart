@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'student/main_screen.dart';
 import 'faculty/faculty_home_screen.dart';
+import 'admin/admin_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -65,12 +66,24 @@ class _AuthScreenState extends State<AuthScreen> {
           userData = studentData[userId];
         } else if (userType == 'faculty' && facultyData.containsKey(userId)) {
           userData = facultyData[userId];
+        } else if (userType == 'admin' && userId == 'kjspadmin') {
+          // Handle admin session persistence
+          userData = {
+            'name': prefs.getString('adminName') ?? 'Admin User',
+            'email': prefs.getString('adminEmail') ?? 'admin@somaiya.edu',
+            'userType': 'admin',
+            'id': 'kjspadmin'
+          };
         }
         
         if (userData != null) {
           if (userType == 'faculty') {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const FacultyHomeScreen()),
+            );
+          } else if (userType == 'admin') {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const AdminScreen()),
             );
           } else {
             Navigator.of(context).pushReplacement(
@@ -109,16 +122,43 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     }
 
+    // Backdoor access for admin credentials
+    if (id == "kjspadmin" && password == "kjsp123") {
+      isAuthenticated = true;
+      userData = {
+        'name': 'Admin User',
+        'email': 'admin@somaiya.edu',
+        'userType': 'admin',
+        'id': 'kjspadmin'
+      };
+      
+      // Show PIN verification popup
+      final pinVerified = await _showPinVerificationDialog();
+      if (!pinVerified) {
+        isAuthenticated = false;
+        userData = null;
+      } else {
+        // Save admin data to shared preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('adminName', userData['name']);
+        await prefs.setString('adminEmail', userData['email']);
+      }
+    }
+
     if (isAuthenticated && userData != null) {
         // Save login state to shared preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('userType', _isFacultyLogin ? 'faculty' : 'student');
+        await prefs.setString('userType', userData['userType'] ?? (_isFacultyLogin ? 'faculty' : 'student'));
         await prefs.setString('userId', id);
         
         if (_isFacultyLogin) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => FacultyHomeScreen(facultyData: userData)),
+          );
+        } else if (userData['userType'] == 'admin') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminScreen()),
           );
         } else {
           Navigator.of(context).pushReplacement(
@@ -139,6 +179,112 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       );
     }
+  }
+
+  Future<bool> _showPinVerificationDialog() async {
+    final TextEditingController pinController = TextEditingController();
+    bool pinVerified = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Admin PIN Verification',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF111827),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter admin PIN to continue',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinController,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                decoration: InputDecoration(
+                  hintText: 'Enter 4-digit PIN',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFA50C22)),
+                  ),
+                  counterText: '',
+                ),
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: const Color(0xFF111827),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF6B7280),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (pinController.text == "2008") {
+                  pinVerified = true;
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Invalid PIN',
+                        style: GoogleFonts.inter(),
+                      ),
+                      backgroundColor: const Color(0xFFA50C22),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFA50C22),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Verify',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    return pinVerified;
   }
 
   @override
