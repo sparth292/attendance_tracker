@@ -1,0 +1,262 @@
+{
+  "faculty_timetables": {
+    "01281": {
+      "faculty_name": "Manjiri Samant",
+      "department": "Computer Engineering",
+      "timetable": [
+        {
+          "day": "Monday",
+          "periods": [
+            {
+              "time": "09:00 - 10:00",
+              "subject": "Image Processing",
+              "room": "Lab 301",
+              "type": "lecture"
+            },
+            {
+              "time": "10:00 - 11:00", 
+              "subject": "Data Structures",
+              "room": "Room 205",
+              "type": "lecture"
+            },
+            {
+              "time": "11:00 - 12:00",
+              "subject": "Free Period",
+              "room": "",
+              "type": "free"
+            },
+            {
+              "time": "12:00 - 01:00",
+              "subject": "Lunch Break",
+              "room": "",
+              "type": "break"
+            },
+            {
+              "time": "01:00 - 02:00",
+              "subject": "Database Systems",
+              "room": "Lab 402",
+              "type": "lab"
+            },
+            {
+              "time": "02:00 - 03:00",
+              "subject": "Computer Networks",
+              "room": "Room 301",
+              "type": "lecture"
+            }
+          ]
+        },
+        {
+          "day": "Tuesday",
+          "periods": [
+            {
+              "time": "09:00 - 10:00",
+              "subject": "Data Structures",
+              "room": "Room 205",
+              "type": "lecture"
+            },
+            {
+              "time": "10:00 - 11:00",
+              "subject": "Image Processing Lab",
+              "room": "Lab 301",
+              "type": "lab"
+            },
+            {
+              "time": "11:00 - 12:00",
+              "subject": "Free Period",
+              "room": "",
+              "type": "free"
+            },
+            {
+              "time": "12:00 - 01:00",
+              "subject": "Lunch Break",
+              "room": "",
+              "type": "break"
+            },
+            {
+              "time": "01:00 - 02:00",
+              "subject": "Computer Networks",
+              "room": "Room 301",
+              "type": "lecture"
+            },
+            {
+              "time": "02:00 - 03:00",
+              "subject": "Database Systems",
+              "room": "Lab 402",
+              "type": "lab"
+            }
+          ]
+        },
+        {
+          "day": "Wednesday",
+          "periods": [
+            {
+              "time": "09:00 - 10:00",
+              "subject": "Database Systems",
+              "room": "Lab 402",
+              "type": "lab"
+            },
+            {
+              "time": "10:00 - 11:00",
+              "subject": "Computer Networks",
+              "room": "Room 301",
+              "type": "lecture"
+            },
+            {
+              "time": "11:00 - 12:00",
+              "subject": "Free Period",
+              "room": "",
+              "type": "free"
+            },
+            {
+              "time": "12:00 - 01:00",
+              "subject": "Lunch Break",
+              "room": "",
+              "type": "break"
+            },
+            {
+              "time": "01:00 - 02:00",
+              "subject": "Image Processing",
+              "room": "Lab 301",
+              "type": "lab"
+            },
+            {
+              "time": "02:00 - 03:00",
+              "subject": "Data Structures",
+              "room": "Room 205",
+              "type": "lecture"
+            }
+          ]
+        },
+        {
+          "day": "Thursday",
+          "periods": [
+            {
+              "time": "09:00 - 10:00",
+              "subject": "Computer Networks",
+              "room": "Room 301",
+              "type": "lecture"
+            },
+            {
+              "time": "10:00 - 11:00",
+              "subject": "Database Systems",
+              "room": "Lab 402",
+              "type": "lab"
+            },
+            {
+              "time": "11:00 - 12:00",
+              "subject": "Free Period",
+              "room": "",
+              "type": "free"
+            },
+            {
+              "time": "12:00 - 01:00",
+              "subject": "Lunch Break",
+              "room": "",
+              "type": "break"
+            },
+            {
+              "time": "01:00 - 02:00",
+              "subject": "Data Structures",
+              "room": "Room 205",
+              "type": "lecture"
+            },
+            {
+              "time": "02:00 - 03:00",
+              "subject": "Image Processing Lab",
+              "room": "Lab 301",
+              "type": "lab"
+            }
+          ]
+        },
+        {
+          "day": "Friday",
+          "periods": [
+            {
+              "time": "09:00 - 10:00",
+              "subject": "Image Processing",
+              "room": "Lab 301",
+              "type": "lab"
+            },
+            {
+              "time": "10:00 - 11:00",
+              "subject": "Data Structures",
+              "room": "Room 205",
+              "type": "lecture"
+            },
+            {
+              "time": "11:00 - 12:00",
+              "subject": "Free Period",
+              "room": "",
+              "type": "free"
+            },
+            {
+              "time": "12:00 - 01:00",
+              "subject": "Lunch Break",
+              "room": "",
+              "type": "break"
+            },
+            {
+              "time": "01:00 - 02:00",
+              "subject": "Computer Networks",
+              "room": "Room 301",
+              "type": "lecture"
+            },
+            {
+              "time": "02:00 - 03:00",
+              "subject": "Database Systems",
+              "room": "Lab 402",
+              "type": "lab"
+            }
+          ]
+        }
+      ]
+    },
+    "01282": {
+      "faculty_name": "Rahul Sharma",
+      "department": "Information Technology",
+      "timetable": [
+        {
+          "day": "Monday",
+          "periods": [
+            {
+              "time": "09:00 - 10:00",
+              "subject": "Web Development",
+              "room": "Lab 101",
+              "type": "lecture"
+            },
+            {
+              "time": "10:00 - 11:00",
+              "subject": "Software Engineering",
+              "room": "Room 102",
+              "type": "lecture"
+            },
+            {
+              "time": "11:00 - 12:00",
+              "subject": "Free Period",
+              "room": "",
+              "type": "free"
+            },
+            {
+              "time": "12:00 - 01:00",
+              "subject": "Lunch Break",
+              "room": "",
+              "type": "break"
+            },
+            {
+              "time": "01:00 - 02:00",
+              "subject": "Cloud Computing",
+              "room": "Lab 201",
+              "type": "lab"
+            },
+            {
+              "time": "02:00 - 03:00",
+              "subject": "Machine Learning",
+              "room": "Room 103",
+              "type": "lecture"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

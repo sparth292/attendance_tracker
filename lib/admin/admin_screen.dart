@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'upload_event_screen.dart';
+import 'register_student_screen.dart';
+import 'register_faculty_screen.dart';
+import 'delete_user_screen.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({Key? key}) : super(key: key);
@@ -99,61 +103,6 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: const Color(0xFF6B7280),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -278,10 +227,12 @@ class _AdminScreenState extends State<AdminScreen> {
                 _buildAdminCard(
                   icon: Icons.event,
                   title: 'Upload Events',
-                  subtitle: 'Add workshops & events',
-                  color: const Color(0xFF10B981),
+                  subtitle: 'workshops & events',
+                  color: const Color(0xFFA50C22),
                   onTap: () {
-                    // TODO: Navigate to upload events
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const UploadEventScreen()),
+                    );
                   },
                 ),
                 
@@ -290,9 +241,11 @@ class _AdminScreenState extends State<AdminScreen> {
                   icon: Icons.person_add,
                   title: 'Register Student',
                   subtitle: 'Add new student',
-                  color: const Color(0xFF3B82F6),
+                  color: const Color(0xFFA50C22),
                   onTap: () {
-                    // TODO: Navigate to student registration
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterStudentScreen()),
+                    );
                   },
                 ),
                 
@@ -301,9 +254,11 @@ class _AdminScreenState extends State<AdminScreen> {
                   icon: Icons.school,
                   title: 'Register Faculty',
                   subtitle: 'Add new faculty',
-                  color: const Color(0xFF8B5CF6),
+                  color: const Color(0xFFA50C22),
                   onTap: () {
-                    // TODO: Navigate to faculty registration
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterFacultyScreen()),
+                    );
                   },
                 ),
                 
@@ -311,10 +266,12 @@ class _AdminScreenState extends State<AdminScreen> {
                 _buildAdminCard(
                   icon: Icons.person_remove,
                   title: 'Delete User',
-                  subtitle: 'Remove user account',
-                  color: const Color(0xFFEF4444),
+                  subtitle: 'Remove user',
+                  color: const Color(0xFFA50C22),
                   onTap: () {
-                    // TODO: Navigate to delete user
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DeleteUserScreen()),
+                    );
                   },
                 ),
                 
@@ -323,7 +280,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   icon: Icons.calendar_month,
                   title: 'Upload Timetable',
                   subtitle: 'Update schedules',
-                  color: const Color(0xFFF59E0B),
+                  color: const Color(0xFFA50C22),
                   onTap: () {
                     // TODO: Navigate to upload timetable
                   },
@@ -332,9 +289,9 @@ class _AdminScreenState extends State<AdminScreen> {
                 // Send Notifications
                 _buildAdminCard(
                   icon: Icons.notifications_active,
-                  title: 'Send Notifications',
-                  subtitle: 'Results, events & more',
-                  color: const Color(0xFF06B6D4),
+                  title: 'Notifications',
+                  subtitle: 'Results, events',
+                  color: const Color(0xFFA50C22),
                   onTap: () {
                     // TODO: Navigate to send notifications
                   },
@@ -343,80 +300,6 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
             
             const SizedBox(height: 24),
-            
-            // Quick Stats Section
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'System Overview',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF111827),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.people,
-                          label: 'Students',
-                          value: '150',
-                          color: const Color(0xFF3B82F6),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.school,
-                          label: 'Faculty',
-                          value: '25',
-                          color: const Color(0xFF8B5CF6),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.event,
-                          label: 'Events',
-                          value: '8',
-                          color: const Color(0xFF10B981),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.notifications,
-                          label: 'Notifications',
-                          value: '12',
-                          color: const Color(0xFFF59E0B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
