@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'timetable_screen.dart';
 import 'attendance_tracker_screen.dart';
+import 'notifications_screen.dart';
 import '../upcoming_events_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -117,7 +118,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         Icons.notifications,
                         color: Colors.white,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen(),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(width: 8),
                     Image.asset(
@@ -461,53 +469,52 @@ class _AttendanceCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
 
-                /// Warning chip — below 80%
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFFCA5A5),
-                      width: 1,
+                /// Status message
+                if (overallPercentage >= 75.0)
+                  Text(
+                    "Good attendance",
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF16A34A),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFFFCA5A5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          size: 13,
+                          color: Color(0xFFDC2626),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Below 75% threshold",
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFFDC2626),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.warning_amber_rounded,
-                        size: 13,
-                        color: Color(0xFFDC2626),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        "Below 80% threshold",
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFFDC2626),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
                 const SizedBox(height: 10),
-
-                /// Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: overallPercentage / 100,
-                    minHeight: 5,
-                    backgroundColor: const Color(0xFFE5E7EB),
-                    color: const Color(0xFFA50C22),
-                  ),
-                ),
               ],
             ),
           ),
