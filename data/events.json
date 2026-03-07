@@ -1,0 +1,85 @@
+{
+  "events": [
+    {
+      "id": "1",
+      "name": "Symphony",
+      "imagePath": "assets/images/symphony.jpg",
+      "description": "A wonderful music event where students will get vibe with some songs",
+      "date": "2026-03-15",
+      "time": "6:00 PM",
+      "venue": "Auditorium",
+      "category": "Cultural"
+    },
+    {
+      "id": "2",
+      "name": "Abhiyantriki",
+      "imagePath": "assets/images/abhiyantriki.jpg",
+      "description": "Technical festival featuring robotics, coding competitions, and workshops",
+      "date": "2026-03-20",
+      "time": "9:00 AM",
+      "venue": "Engineering Block",
+      "category": "Technical"
+    },
+    {
+      "id": "3",
+      "name": "Techmaze",
+      "imagePath": "assets/images/techmaze.jpg",
+      "description": "Inter-college technical competition with various engineering challenges",
+      "date": "2026-03-25",
+      "time": "10:00 AM",
+      "venue": "Main Campus",
+      "category": "Competition"
+    },
+    {
+      "id": "4",
+      "name": "Sports Meet",
+      "imagePath": "assets/images/sports.jpg",
+      "description": "Annual sports day with various athletic events and competitions",
+      "date": "2026-04-01",
+      "time": "8:00 AM",
+      "venue": "Sports Ground",
+      "category": "Sports"
+    },
+    {
+      "id": "5",
+      "name": "Hackathon",
+      "imagePath": "assets/images/hackathon.jpg",
+      "description": "24-hour coding challenge to innovate and create solutions",
+      "date": "2026-04-05",
+      "time": "6:00 PM",
+      "venue": "Computer Lab",
+      "category": "Technical"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cultural",
+      "name": "Cultural",
+      "color": "#FF6B6B",
+      "icon": "music_note"
+    },
+    {
+      "id": "technical",
+      "name": "Technical",
+      "color": "#4ECDC4",
+      "icon": "computer"
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "color": "#45B7D1",
+      "icon": "sports_soccer"
+    },
+    {
+      "id": "competition",
+      "name": "Competition",
+      "color": "#96CEB4",
+      "icon": "emoji_events"
+    }
+  ],
+  "metadata": {
+    "created": "2026-03-07",
+    "version": "1.0",
+    "description": "Events section data with event details and categories"
+  }
+}

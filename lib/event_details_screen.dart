@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+//badalaycha ahe for AWS
 class EventDetailsScreen extends StatelessWidget {
   final String eventName;
   final String imagePath;
