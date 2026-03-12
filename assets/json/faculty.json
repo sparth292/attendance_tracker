@@ -5,7 +5,69 @@
     "email": "nitin.redkar@somaiya.edu",
     "phone": "+91 98765 43220",
     "department": "Computer Engineering",
-    "designation": "Professor"
+    "designation": "Professor",
+    "schedule": [
+      {
+        "subject": "Data Structures",
+        "code": "023RC20",
+        "time_slots": [
+          {
+            "day": "MON",
+            "time": "10:30-11:30",
+            "room": "207",
+            "batch": "FY-COMPS-A"
+          },
+          {
+            "day": "WED",
+            "time": "1:15-2:15",
+            "room": "207",
+            "batch": "TE-COMPS-B"
+          },
+          {
+            "day": "FRI",
+            "time": "2:15-3:15",
+            "room": "207",
+            "batch": "BE-COMPS-A"
+          }
+        ]
+      },
+      {
+        "subject": "Algorithms",
+        "code": "023RC21",
+        "time_slots": [
+          {
+            "day": "TUE",
+            "time": "10:30-11:30",
+            "room": "207",
+            "batch": "TE-COMPS-B"
+          },
+          {
+            "day": "THU",
+            "time": "1:15-2:15",
+            "room": "207",
+            "batch": "TE-COMPS-B"
+          }
+        ]
+      },
+      {
+        "subject": "Operating Systems",
+        "code": "023RC22",
+        "time_slots": [
+          {
+            "day": "MON",
+            "time": "1:15-2:15",
+            "room": "301",
+            "batch": "BE-COMPS-A"
+          },
+          {
+            "day": "TUE",
+            "time": "11:30-12:30",
+            "room": "301",
+            "batch": "TE-COMPS-B"
+          }
+        ]
+      }
+    ]
   },
   "Manjiri": {
     "password": "teacher123",
@@ -13,6 +75,150 @@
     "email": "manjiri.samant@somaiya.edu",
     "phone": "+91 98765 43221",
     "department": "Computer Engineering",
-    "designation": "Assistant Professor"
+    "designation": "Assistant Professor",
+    "schedule": [
+      {
+        "subject": "Image Processing",
+        "code": "023RC22",
+        "time_slots": [
+          {
+            "day": "MON",
+            "time": "10:30-11:30",
+            "room": "207",
+            "batch": "FY-COMPS-A"
+          },
+          {
+            "day": "WED",
+            "time": "1:15-2:15",
+            "room": "301",
+            "batch": "TY-COMPS-A"
+          },
+          {
+            "day": "FRI",
+            "time": "2:15-3:15",
+            "room": "207",
+            "batch": "FY-COMPS-A"
+          }
+        ]
+      },
+      {
+        "subject": "Software Engineering",
+        "code": "023RC23",
+        "time_slots": [
+          {
+            "day": "MON",
+            "time": "11:30-12:30",
+            "room": "209",
+            "batch": "FY-COMPS-A"
+          },
+          {
+            "day": "TUE",
+            "time": "10:30-11:30",
+            "room": "209",
+            "batch": "TY-COMPS-A"
+          },
+          {
+            "day": "THU",
+            "time": "1:15-2:15",
+            "room": "209",
+            "batch": "TY-COMPS-A"
+          }
+        ]
+      },
+      {
+        "subject": "Database Systems",
+        "code": "023RC24",
+        "time_slots": [
+          {
+            "day": "TUE",
+            "time": "1:15-2:15",
+            "room": "402",
+            "batch": "SY-COMPS-B"
+          },
+          {
+            "day": "WED",
+            "time": "10:30-11:30",
+            "room": "402",
+            "batch": "SY-COMPS-B"
+          },
+          {
+            "day": "FRI",
+            "time": "1:15-2:15",
+            "room": "402",
+            "batch": "SY-COMPS-B"
+          }
+        ]
+      }
+    ]
+  },
+  "Varsha Kinge": {
+    "password": "teacher123",
+    "name": "Varsha Kinge",
+    "email": "varsha.king@somaiya.edu",
+    "phone": "+91 98765 43221",
+    "department": "Computer Engineering",
+    "designation": "Assistant Professor",
+    "schedule": [
+      {
+        "subject": "Computer Networks",
+        "code": "023RC25",
+        "time_slots": [
+          {
+            "day": "MON",
+            "time": "10:30-11:30",
+            "room": "205",
+            "batch": "FY-COMPS-A"
+          },
+          {
+            "day": "WED",
+            "time": "2:15-3:15",
+            "room": "205",
+            "batch": "TY-COMPS-A"
+          },
+          {
+            "day": "FRI",
+            "time": "3:30-4:30",
+            "room": "205",
+            "batch": "TY-COMPS-A"
+          }
+        ]
+      },
+      {
+        "subject": "Cloud Computing",
+        "code": "023RC26",
+        "time_slots": [
+          {
+            "day": "TUE",
+            "time": "10:30-11:30",
+            "room": "301",
+            "batch": "FY-COMPS-A"
+          },
+          {
+            "day": "THU",
+            "time": "1:15-2:15",
+            "room": "301",
+            "batch": "TY-COMPS-A"
+          }
+        ]
+      },
+      {
+        "subject": "Web Development",
+        "code": "023RC27",
+        "time_slots": [
+          {
+            "day": "MON",
+            "time": "1:15-2:15",
+            "room": "301",
+            "batch": "SY-COMPS-B"
+          },
+          {
+            "day": "WED",
+            "time": "3:30-4:30",
+            "room": "301",
+            "batch": "TY-COMPS-A"
+          }
+        ]
+      }
+    ]
   }
 }

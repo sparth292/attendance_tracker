@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 
 class TimetableScreen extends StatefulWidget {
   final Map<String, dynamic>? facultyData;
@@ -16,6 +18,7 @@ class _TimetableScreenState extends State<TimetableScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late Timer _clockTimer;
+  Map<String, dynamic>? facultyInfo;
 
   // Live time
   DateTime _now = DateTime.now();
@@ -54,6 +57,7 @@ class _TimetableScreenState extends State<TimetableScreen>
   @override
   void initState() {
     super.initState();
+    _loadFacultyData();
 
     // Pulse animation
     _pulseController = AnimationController(
@@ -67,8 +71,31 @@ class _TimetableScreenState extends State<TimetableScreen>
 
     // Refresh every 30 seconds so that highlighted slot stays accurate
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
+      if (mounted) {
+        setState(() => _now = DateTime.now());
+        // Also refresh faculty data to ensure it's current
+        _loadFacultyData();
+      }
     });
+  }
+
+  Future<void> _loadFacultyData() async {
+    try {
+      final String jsonString = await rootBundle.loadString(
+        'assets/json/faculty.json',
+      );
+      final Map<String, dynamic> data = json.decode(jsonString);
+
+      final facultyId = widget.facultyData?['id'] ?? "Manjiri";
+      final faculty = data[facultyId];
+
+      setState(() {
+        facultyInfo = faculty;
+        _days = _generateTimetableFromFacultyData();
+      });
+    } catch (e) {
+      print("Error loading faculty data: $e");
+    }
   }
 
   @override
@@ -89,87 +116,123 @@ class _TimetableScreenState extends State<TimetableScreen>
     '4:30\n5:30',
   ];
 
-  // ── Timetable data ────────────────────────────────────────────────
-  final List<Map<String, dynamic>> _days = [
-    {
-      'label': 'MON',
-      'full': 'Monday',
-      'subjects': [
-        {'subject': 'IP', 'faculty': 'MS', 'room': '207'},
-        {'subject': 'SE', 'faculty': 'VSG', 'room': '209'},
-        {'subject': '', 'faculty': '', 'room': ''},
-        {'subject': 'LAN', 'faculty': 'NRK', 'room': '207'},
-        {'subject': 'CC', 'faculty': 'PRA', 'room': '301'},
-        {'subject': 'DB', 'faculty': 'MS', 'room': '402'},
-        {'subject': 'CN', 'faculty': 'MS', 'room': '205'},
-      ],
-    },
-    {
-      'label': 'TUE',
-      'full': 'Tuesday',
-      'subjects': [
-        {'subject': 'IP', 'faculty': 'MS', 'room': '207'},
-        {'subject': 'SE Lab', 'faculty': 'MS', 'room': '404'},
-        {'subject': '', 'faculty': '', 'room': ''},
-        {'subject': 'DB Lab', 'faculty': 'MS', 'room': '402'},
-        {'subject': 'CC', 'faculty': 'PRA', 'room': '301'},
-        {'subject': 'LAN', 'faculty': 'NRK', 'room': '207'},
-        {'subject': 'SE', 'faculty': 'VSG', 'room': '209'},
-      ],
-    },
-    {
-      'label': 'WED',
-      'full': 'Wednesday',
-      'subjects': [
-        {'subject': 'DB', 'faculty': 'MS', 'room': '402'},
-        {'subject': 'IP Lab', 'faculty': 'MS', 'room': '301'},
-        {'subject': '', 'faculty': '', 'room': ''},
-        {'subject': 'SE', 'faculty': 'VSG', 'room': '209'},
-        {'subject': 'LAN', 'faculty': 'NRK', 'room': '207'},
-        {'subject': 'CC', 'faculty': 'PRA', 'room': '301'},
-        {'subject': 'CN', 'faculty': 'MS', 'room': '205'},
-      ],
-    },
-    {
-      'label': 'THU',
-      'full': 'Thursday',
-      'subjects': [
-        {'subject': 'CN', 'faculty': 'MS', 'room': '205'},
-        {'subject': 'DB Lab', 'faculty': 'MS', 'room': '402'},
-        {'subject': '', 'faculty': '', 'room': ''},
-        {'subject': 'IP Lab', 'faculty': 'MS', 'room': '301'},
-        {'subject': 'SE Lab', 'faculty': 'VSG', 'room': '404'},
-        {'subject': 'CC', 'faculty': 'PRA', 'room': '301'},
-        {'subject': 'LAN', 'faculty': 'NRK', 'room': '207'},
-      ],
-    },
-    {
-      'label': 'FRI',
-      'full': 'Friday',
-      'subjects': [
-        {'subject': 'IP', 'faculty': 'MS', 'room': '207'},
-        {'subject': 'CC Lab', 'faculty': 'MS', 'room': '402'},
-        {'subject': '', 'faculty': '', 'room': ''},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': 'SE', 'faculty': 'VSG', 'room': '209'},
-        {'subject': 'LAN', 'faculty': 'NRK', 'room': '207'},
-      ],
-    },
-    {
-      'label': 'SAT',
-      'full': 'Saturday',
-      'subjects': [
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': '', 'faculty': '', 'room': ''},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-        {'subject': 'Project', 'faculty': 'MS', 'room': 'Lab'},
-      ],
-    },
-  ];
+  // ── Generate timetable from faculty data ─────────────────────────────
+  List<Map<String, dynamic>> _generateTimetableFromFacultyData() {
+    final timetable = <String, Map<String, dynamic>>{};
+
+    // Initialize all slots as empty
+    const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    for (int day = 0; day < 6; day++) {
+      timetable[dayLabels[day]] = {
+        'label': dayLabels[day],
+        'full': _getDayFullName(dayLabels[day]),
+        'subjects': List.generate(
+          7,
+          (slotIndex) => {'subject': '', 'batch': '', 'room': ''},
+        ),
+      };
+    }
+
+    // Fill slots with faculty's subject schedules
+    if (facultyInfo != null && facultyInfo!['schedule'] != null) {
+      final schedule = facultyInfo!['schedule'] as List<dynamic>;
+
+      for (final subject in schedule) {
+        final subjectName = subject['subject'] as String;
+        final subjectCode = subject['code'] as String;
+        final timeSlots = subject['time_slots'] as List<dynamic>;
+
+        for (final slot in timeSlots) {
+          final day = slot['day'] as String;
+          final time = slot['time'] as String;
+          final room = slot['room'] as String;
+          final batch = slot['batch'] as String? ?? '';
+
+          final dayIndex = _getDayIndex(day);
+          if (dayIndex != -1) {
+            final slotIndex = _getSlotIndex(time);
+            if (slotIndex != -1 && slotIndex != 2) {
+              // Not lunch
+              timetable[dayLabels[dayIndex]]!['subjects'][slotIndex] = {
+                'subject': _getSubjectAbbreviation(subjectName),
+                'batch': batch,
+                'room': room,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return timetable.values.toList();
+  }
+
+  // Helper methods for dynamic scheduling
+  String _getDayFullName(String dayLabel) {
+    final days = {
+      'MON': 'Monday',
+      'TUE': 'Tuesday',
+      'WED': 'Wednesday',
+      'THU': 'Thursday',
+      'FRI': 'Friday',
+      'SAT': 'Saturday',
+    };
+    return days[dayLabel] ?? dayLabel;
+  }
+
+  int _getDayIndex(String dayLabel) {
+    final days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    return days.indexOf(dayLabel);
+  }
+
+  int _getSlotIndex(String timeSlot) {
+    final slotMap = {
+      '10:30-11:30': 0,
+      '11:30-12:30': 1,
+      '1:15-2:15': 3,
+      '2:15-3:15': 4,
+      '3:30-4:30': 5,
+      '4:30-5:30': 6,
+    };
+    return slotMap[timeSlot] ?? -1;
+  }
+
+  String _getSubjectAbbreviation(String subjectName) {
+    final abbreviations = {
+      'Image Processing': 'IP',
+      'Software Engineering': 'SE',
+      'Database Systems': 'DB',
+      'Computer Networks': 'CN',
+      'Cloud Computing': 'CC',
+      'Data Structures': 'DS',
+      'Algorithms': 'AL',
+      'Operating Systems': 'OS',
+      'Web Development': 'WD',
+      'Local Area Networks': 'LAN',
+    };
+    return abbreviations[subjectName] ??
+        subjectName.substring(0, 3).toUpperCase();
+  }
+
+  String _getBatchForSubject(String subjectName) {
+    if (facultyInfo != null && facultyInfo!['schedule'] != null) {
+      final schedule = facultyInfo!['schedule'] as List<dynamic>;
+
+      for (final subject in schedule) {
+        final subjectNameInSchedule = subject['subject'] as String;
+        final timeSlots = subject['time_slots'] as List<dynamic>;
+
+        // If this is the subject we're looking for, return the batch from its first time slot
+        if (subjectNameInSchedule == subjectName && timeSlots.isNotEmpty) {
+          return timeSlots.first['batch'] as String? ?? '';
+        }
+      }
+    }
+    return '';
+  }
+
+  // ── Timetable data (will be generated dynamically) ─────────────────────
+  List<Map<String, dynamic>> _days = [];
 
   // ── Subject detail lookup ─────────────────────────────────────────────────
   Map<String, String> _subjectDetail(String abbr) {
@@ -177,10 +240,14 @@ class _TimetableScreenState extends State<TimetableScreen>
       'IP': {'name': 'Image Processing', 'code': '023RC22'},
       'SE': {'name': 'Software Engineering', 'code': '023RC23'},
       'LAN': {'name': 'Local Area Networks', 'code': '023RC24'},
-      'CC Lab': {'name': 'Cloud Computing Lab', 'code': '023RC25'},
-      'LAN Lab': {'name': 'LAN Lab', 'code': '023RC26'},
-      'SE Lab': {'name': 'Software Engineering Lab', 'code': '023RC27'},
-      'Project': {'name': 'Project Work', 'code': '023RC28'},
+      'CC': {'name': 'Cloud Computing', 'code': '023RC25'},
+      'DB': {'name': 'Database Systems', 'code': '023RC26'},
+      'CN': {'name': 'Computer Networks', 'code': '023RC27'},
+      'IP Lab': {'name': 'Image Processing Lab', 'code': '023RC28'},
+      'SE Lab': {'name': 'Software Engineering Lab', 'code': '023RC29'},
+      'CC Lab': {'name': 'Cloud Computing Lab', 'code': '023RC30'},
+      'DB Lab': {'name': 'Database Lab', 'code': '023RC31'},
+      'Project': {'name': 'Project Work', 'code': '023RC32'},
     };
     return Map<String, String>.from(
       details[abbr] ?? {'name': abbr, 'code': '—'},
@@ -207,25 +274,19 @@ class _TimetableScreenState extends State<TimetableScreen>
     final todayIdx = _todayDayIndex;
     final activeSlot = _activeSlotIndex;
 
+    if (facultyInfo == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF1F3F6),
+        body: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA50C22)),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F3F6),
-
-      // ── App Bar ────────────────────────────────────────────────────
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFA50C22),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
-            size: 18,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const SizedBox.shrink(),
-        automaticallyImplyLeading: true,
-      ),
-
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -240,7 +301,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Faculty — ${widget.facultyData?['name'] ?? "Manjiri Samant"}',
+                        'Faculty Timetable',
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -249,7 +310,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Computer Engineering — Term – Even  • Semester VI',
+                        facultyInfo!['department'] ?? "Computer Engineering",
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: const Color(0xFF6B7280),
@@ -491,20 +552,9 @@ class _TimetableScreenState extends State<TimetableScreen>
     required String dayLabel,
   }) {
     final isLunch = slotIndex == 2;
-    final subject = data['subject']!;
-    final faculty = data['faculty']!;
-    final room = data['room']!;
-
-    // Check if this is the current faculty's lecture
-    final facultyName = widget.facultyData?['name'] ?? '';
-    final isFacultyLecture =
-        facultyName.isNotEmpty &&
-        (faculty == facultyName.split(' ').map((word) => word[0]).join('') ||
-            faculty ==
-                facultyName.substring(
-                  0,
-                  facultyName.length > 3 ? 3 : facultyName.length,
-                ));
+    final subject = data['subject'] ?? '';
+    final batch = data['batch'] ?? '';
+    final room = data['room'] ?? '';
 
     // LUNCH BREAK cell
     if (isLunch) {
@@ -539,12 +589,12 @@ class _TimetableScreenState extends State<TimetableScreen>
     final isOngoing = isToday && slotIndex == activeSlot;
 
     return GestureDetector(
-      onTap: () => _showSubjectModal(subject, faculty, room),
+      onTap: () => _showSubjectModal(subject, batch, room),
       child: AnimatedBuilder(
         animation: _pulseAnimation,
         builder: (_, __) {
           // Enhanced highlighting for faculty's own lectures
-          final isFacultyHighlight = isFacultyLecture && isToday;
+          final isFacultyLecture = batch.isNotEmpty && isToday;
 
           final bgColor = isOngoing
               ? Color.lerp(
@@ -552,7 +602,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                   const Color(0xFFFFE4E6),
                   _pulseAnimation.value,
                 )!
-              : isFacultyHighlight
+              : isFacultyLecture
               ? const Color(0xFFE8F5E8) // Light green for faculty's lectures
               : const Color(0xFFF9FAFB);
 
@@ -562,7 +612,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                   const Color(0xFFA50C22).withOpacity(0.9),
                   _pulseAnimation.value,
                 )!
-              : isFacultyHighlight
+              : isFacultyLecture
               ? const Color(0xFF4CAF50) // Green border for faculty's lectures
               : const Color(0xFFE5E7EB);
 
@@ -575,7 +625,7 @@ class _TimetableScreenState extends State<TimetableScreen>
               borderRadius: BorderRadius.circular(7),
               border: Border.all(
                 color: borderColor,
-                width: isOngoing ? 1.5 : (isFacultyHighlight ? 1.5 : 1),
+                width: isOngoing ? 1.5 : (isFacultyLecture ? 1.5 : 1),
               ),
             ),
             child: Column(
@@ -590,7 +640,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                     fontWeight: FontWeight.w700,
                     color: isOngoing
                         ? const Color(0xFFA50C22)
-                        : isFacultyHighlight
+                        : isFacultyLecture
                         ? const Color(
                             0xFF2E7D32,
                           ) // Dark green for faculty's lectures
@@ -598,16 +648,16 @@ class _TimetableScreenState extends State<TimetableScreen>
                   ),
                 ),
                 const SizedBox(height: 3),
-                // Faculty
+                // Batch
                 Text(
-                  faculty,
+                  batch,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
                     color: isOngoing
                         ? const Color(0xFFA50C22).withOpacity(0.75)
-                        : isFacultyHighlight
+                        : isFacultyLecture
                         ? const Color(0xFF2E7D32).withOpacity(0.8)
                         : const Color(0xFF6B7280),
                   ),
@@ -622,7 +672,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                   decoration: BoxDecoration(
                     color: isOngoing
                         ? const Color(0xFFA50C22).withOpacity(0.1)
-                        : isFacultyHighlight
+                        : isFacultyLecture
                         ? const Color(0xFF4CAF50).withOpacity(0.2)
                         : const Color(0xFFE5E7EB),
                     borderRadius: BorderRadius.circular(4),
@@ -635,7 +685,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                       fontWeight: FontWeight.w600,
                       color: isOngoing
                           ? const Color(0xFFA50C22)
-                          : isFacultyHighlight
+                          : isFacultyLecture
                           ? const Color(0xFF2E7D32)
                           : const Color(0xFF374151),
                     ),
@@ -665,7 +715,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                   ),
                 ],
                 // Faculty indicator for their own lectures
-                if (isFacultyHighlight && !isOngoing) ...[
+                if (isFacultyLecture && !isOngoing) ...[
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -696,8 +746,11 @@ class _TimetableScreenState extends State<TimetableScreen>
   }
 
   // ── Subject modal ─────────────────────────────────────────────────────────
-  void _showSubjectModal(String abbr, String faculty, String room) {
+  void _showSubjectModal(String abbr, String batch, String room) {
     final detail = _subjectDetail(abbr);
+
+    // Find which batch this subject belongs to
+    final subjectBatch = _getBatchForSubject(detail['name']!);
 
     showDialog(
       context: context,
@@ -758,7 +811,7 @@ class _TimetableScreenState extends State<TimetableScreen>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _modalRow(Icons.person_outline_rounded, 'Faculty', faculty),
+                  _modalRow(Icons.person_outline_rounded, 'Faculty', batch),
                   const Divider(
                     height: 18,
                     thickness: 1,
@@ -771,6 +824,12 @@ class _TimetableScreenState extends State<TimetableScreen>
                     color: Color(0xFFF3F4F6),
                   ),
                   _modalRow(Icons.tag_rounded, 'Course Code', detail['code']!),
+                  const Divider(
+                    height: 18,
+                    thickness: 1,
+                    color: Color(0xFFF3F4F6),
+                  ),
+                  _modalRow(Icons.group_outlined, 'Batch', subjectBatch),
                 ],
               ),
             ),

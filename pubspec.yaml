@@ -80,11 +80,10 @@ dependencies:
   google_fonts: ^6.3.2
   shared_preferences: ^2.2.2
   image_picker:
-
-
+  flutter_native_splash: ^2.4.7  
 
 dev_dependencies:
-
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
 
     sdk: flutter
@@ -138,13 +137,20 @@ flutter:
 
   #   - images/a_dot_ham.jpeg
 
-
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/somaiya-large.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
 
   # https://flutter.dev/to/resolution-aware-images
 
-
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/images/somaiya-large.png
+  android: true
+  ios: true
 
   # For details regarding adding assets from package dependencies, see
 
