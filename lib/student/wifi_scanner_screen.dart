@@ -25,23 +25,26 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
 
   // Check for target SSID and show fingerprint dialog if found
   Future<void> _checkForTargetSSID(List<WiFiAccessPoint> accessPoints) async {
-    final targetSSID = 'Airtel_SHAS_2731';
+    final targetSSID = 'Pranshi_5G';
     final hasTargetSSID = accessPoints.any((ap) => ap.ssid == targetSSID);
-    
+
     if (!mounted) return;
-    
+
     if (hasTargetSSID) {
       final localAuth = LocalAuthentication();
       try {
         // First check if biometric authentication is available
-        final canAuthenticate = await localAuth.canCheckBiometrics || 
-                               await localAuth.isDeviceSupported();
-        
+        final canAuthenticate =
+            await localAuth.canCheckBiometrics ||
+            await localAuth.isDeviceSupported();
+
         if (!canAuthenticate) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Biometric authentication is not available on this device'),
+                content: Text(
+                  'Biometric authentication is not available on this device',
+                ),
                 duration: Duration(seconds: 2),
               ),
             );
@@ -58,7 +61,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           localizedReason: 'Authenticate to mark your attendance',
           // biometricOnly: true, // Removed this line
         );
-        
+
         if (didAuthenticate && mounted) {
           if (mounted) {
             // Give some visual feedback before navigation
@@ -69,10 +72,10 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                 duration: Duration(seconds: 1),
               ),
             );
-            
+
             // Add a small delay for better UX
             await Future.delayed(const Duration(milliseconds: 500));
-            
+
             // Navigate to attendance marked screen
             Navigator.pushReplacement(
               context,
@@ -117,7 +120,8 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
         permission = await Permission.location.request();
         if (!permission.isGranted) {
           setState(() {
-            _errorMessage = 'Location permission is required for WiFi scanning.\n\nPlease enable it in app settings.';
+            _errorMessage =
+                'Location permission is required for WiFi scanning.\n\nPlease enable it in app settings.';
             _isLoading = false;
           });
           return;
@@ -128,7 +132,8 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
       bool isLocationEnabled = await Geolocator.isLocationServiceEnabled();
       if (!isLocationEnabled) {
         setState(() {
-          _errorMessage = 'Location services are disabled.\n\nPlease enable location services to scan for WiFi networks.';
+          _errorMessage =
+              'Location services are disabled.\n\nPlease enable location services to scan for WiFi networks.';
           _isLoading = false;
         });
         // Optionally open location settings
@@ -141,13 +146,15 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
       if (canScan != CanStartScan.yes) {
         String errorMsg = 'Cannot start WiFi scan: ';
         if (canScan == CanStartScan.noLocationPermissionDenied) {
-          errorMsg += 'Location permission denied. Please enable it in app settings.';
+          errorMsg +=
+              'Location permission denied. Please enable it in app settings.';
         } else if (canScan == CanStartScan.noLocationServiceDisabled) {
-          errorMsg += 'Location services are disabled. Please enable them in device settings.';
+          errorMsg +=
+              'Location services are disabled. Please enable them in device settings.';
         } else {
           errorMsg += canScan.toString();
         }
-        
+
         setState(() {
           _errorMessage = errorMsg;
           _isLoading = false;
@@ -158,12 +165,12 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
       // Start scan and get results
       await WiFiScan.instance.startScan();
       final results = await WiFiScan.instance.getScannedResults();
-      
+
       setState(() {
         accessPoints = results;
         _isLoading = false;
       });
-      
+
       // Check for target SSID after scan
       _checkForTargetSSID(results);
     } catch (e) {
@@ -178,7 +185,10 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connect to Wifi', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Mark Attendance',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFFA50C22),
         actions: [
           IconButton(
@@ -186,7 +196,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
             onPressed: _startScan,
           ),
         ],
-        iconTheme : const IconThemeData(color: Colors.white)
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _buildBody(),
     );
@@ -204,8 +214,9 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.warning_amber_rounded, 
-                color: Colors.orange, 
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
                 size: 50,
               ),
               const SizedBox(height: 20),
@@ -222,7 +233,10 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -239,9 +253,7 @@ class _WifiScannerScreenState extends State<WifiScannerScreen> {
     }
 
     if (accessPoints.isEmpty) {
-      return const Center(
-        child: Text('No WiFi networks found'),
-      );
+      return const Center(child: Text('No WiFi networks found'));
     }
 
     return ListView.builder(

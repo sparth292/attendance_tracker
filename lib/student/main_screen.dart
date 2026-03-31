@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_screen.dart';
-import 'wifi_scanner_screen.dart';
+import 'active_sessions_screen.dart';
 import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final Map<String, dynamic>? studentData;
-  
+
   const MainScreen({Key? key, this.studentData}) : super(key: key);
 
   @override
@@ -23,7 +23,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _screens = [
       HomeScreen(studentData: widget.studentData),
-      const WifiScannerScreen(),
+      const ActiveSessionsScreen(),
       StudentProfileScreen(studentData: widget.studentData),
     ];
   }

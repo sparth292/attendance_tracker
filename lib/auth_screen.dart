@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'student/main_screen.dart';
 import 'faculty/faculty_home_screen.dart';
 import 'admin/admin_screen.dart';
+import 'services/api_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({Key? key}) : super(key: key);
@@ -20,8 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _isFacultyLogin = false;
-  
-  Map<String, dynamic> studentData = {};
+
   Map<String, dynamic> facultyData = {};
 
   @override
@@ -31,78 +31,121 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _loadData() async {
+    print('📂 [DATA] Loading faculty data...');
     try {
-      // Load student data
-      final studentJson = await rootBundle.loadString('assets/json/students.json');
-      final studentMap = json.decode(studentJson);
-      
-      // Load faculty data
-      final facultyJson = await rootBundle.loadString('assets/json/faculty.json');
+      // Load faculty data only (students will use API)
+      final facultyJson = await rootBundle.loadString(
+        'assets/json/faculty.json',
+      );
       final facultyMap = json.decode(facultyJson);
-      
+      print('✅ [DATA] Faculty data loaded successfully');
+      print('📊 [DATA] Faculty entries: ${facultyMap.keys.length}');
+
       setState(() {
-        studentData = studentMap;
         facultyData = facultyMap;
       });
-      
+
       // Check login status after data is loaded
+      print('🔄 [DATA] Checking login status after data load...');
       _checkLoginStatus();
     } catch (e) {
-      print('Error loading data: $e');
+      print('❌ [DATA] Error loading data: $e');
     }
   }
 
   Future<void> _checkLoginStatus() async {
+    print('🔍 [SESSION] Checking login status...');
     try {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
       final userType = prefs.getString('userType') ?? '';
       final userId = prefs.getString('userId') ?? '';
-      
+
+      print(
+        '📋 [SESSION] isLoggedIn: $isLoggedIn, userType: $userType, userId: $userId',
+      );
+
       if (isLoggedIn && userId.isNotEmpty) {
+        print('✅ [SESSION] User session found, restoring...');
         // Load user data
         Map<String, dynamic>? userData;
-        if (userType == 'student' && studentData.containsKey(userId)) {
-          userData = studentData[userId];
+        if (userType == 'student') {
+          print('🎓 [SESSION] Restoring student session...');
+          // Debug: Print all stored preferences
+          print('🔍 [SESSION] All stored keys: ${prefs.getKeys()}');
+          print(
+            '📋 [SESSION] Student ID from prefs: ${prefs.getString('studentId')}',
+          );
+          print(
+            '📋 [SESSION] Student name from prefs: ${prefs.getString('studentName')}',
+          );
+          print(
+            '📋 [SESSION] User ID from prefs: ${prefs.getString('userId')}',
+          );
+
+          // For students, we need to fetch data from API or use cached data
+          // For now, we'll store minimal data in prefs and navigate
+          userData = {
+            'id': userId,
+            'name': prefs.getString('studentName') ?? 'Student',
+            'email': prefs.getString('studentEmail') ?? 'student@somaiya.edu',
+          };
+          print('📊 [SESSION] Student data restored: $userData');
         } else if (userType == 'faculty' && facultyData.containsKey(userId)) {
+          print('👨‍🏫 [SESSION] Restoring faculty session...');
           userData = facultyData[userId];
+          print('📊 [SESSION] Faculty data restored: $userData');
         } else if (userType == 'admin' && userId == 'kjspadmin') {
+          print('👑 [SESSION] Restoring admin session...');
           // Handle admin session persistence
           userData = {
             'name': prefs.getString('adminName') ?? 'Admin User',
             'email': prefs.getString('adminEmail') ?? 'admin@somaiya.edu',
             'userType': 'admin',
-            'id': 'kjspadmin'
+            'id': 'kjspadmin',
           };
+          print('📊 [SESSION] Admin data restored: $userData');
         }
-        
+
         if (userData != null) {
+          print(
+            '🚀 [SESSION] Navigating to appropriate screen for $userType...',
+          );
           if (userType == 'faculty') {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const FacultyHomeScreen()),
             );
+            print('👨‍🏫 [SESSION] Navigated to FacultyHomeScreen');
           } else if (userType == 'admin') {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const AdminScreen()),
             );
+            print('👑 [SESSION] Navigated to AdminScreen');
           } else {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => MainScreen(studentData: userData)),
+              MaterialPageRoute(
+                builder: (_) => MainScreen(studentData: userData),
+              ),
             );
+            print('🎓 [SESSION] Navigated to MainScreen');
           }
+        } else {
+          print('❌ [SESSION] No user data found for session restoration');
         }
+      } else {
+        print('ℹ️ [SESSION] No active session found');
       }
     } catch (e) {
-      print('Error checking login status: $e');
+      print('❌ [SESSION] Error checking login status: $e');
     }
   }
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
+    print('🔐 [LOGIN] Starting login process...');
+    print('📋 [LOGIN] Faculty login: $_isFacultyLogin');
+    print('📋 [LOGIN] User ID: ${_idController.text.trim()}');
 
-    // Simulate authentication delay
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isLoading = false);
+    setState(() => _isLoading = true);
 
     final id = _idController.text.trim();
     final password = _passwordController.text.trim();
@@ -111,61 +154,131 @@ class _AuthScreenState extends State<AuthScreen> {
     Map<String, dynamic>? userData;
 
     if (_isFacultyLogin) {
-      if (facultyData.containsKey(id) && facultyData[id]['password'] == password) {
+      print('👨‍🏫 [LOGIN] Attempting faculty authentication...');
+      // Faculty authentication using JSON
+      if (facultyData.containsKey(id) &&
+          facultyData[id]['password'] == password) {
         isAuthenticated = true;
         userData = facultyData[id];
+        print('✅ [LOGIN] Faculty authentication successful');
+      } else {
+        print('❌ [LOGIN] Faculty authentication failed');
       }
-    } else {
-      if (studentData.containsKey(id) && studentData[id]['password'] == password) {
-        isAuthenticated = true;
-        userData = studentData[id];
-      }
-    }
-
-    // Backdoor access for admin credentials
-    if (id == "kjspadmin" && password == "kjsp123") {
+    } else if (id == "kjspadmin" && password == "kjsp123") {
+      print('👑 [LOGIN] Attempting admin authentication...');
+      // Admin authentication
       isAuthenticated = true;
       userData = {
         'name': 'Admin User',
         'email': 'admin@somaiya.edu',
         'userType': 'admin',
-        'id': 'kjspadmin'
+        'id': 'kjspadmin',
       };
-      
+      print('✅ [LOGIN] Admin credentials verified, showing PIN dialog...');
+
       // Show PIN verification popup
+      print('🔐 [PIN] Showing PIN verification dialog...');
       final pinVerified = await _showPinVerificationDialog();
       if (!pinVerified) {
         isAuthenticated = false;
         userData = null;
+        print('❌ [LOGIN] Admin PIN verification failed');
       } else {
+        print('✅ [LOGIN] Admin PIN verification successful');
         // Save admin data to shared preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('adminName', userData['name']);
         await prefs.setString('adminEmail', userData['email']);
+        print('💾 [STORAGE] Admin data saved to SharedPreferences');
+      }
+    } else {
+      print('🎓 [LOGIN] Attempting student authentication via API...');
+      // Student authentication using API
+      try {
+        print('📡 [API] Calling login API for roll number: $id');
+        userData = await ApiService.login(id, password);
+        isAuthenticated = true;
+        print('✅ [API] Student authentication successful');
+        print('📊 [API] Complete response data: $userData');
+        print('🔑 [API] Available response keys: ${userData.keys.toList()}');
+        print('🎓 [API] Login ID used: $id');
+      } catch (e) {
+        isAuthenticated = false;
+        print('❌ [API] Student authentication failed: $e');
       }
     }
 
+    setState(() => _isLoading = false);
+
     if (isAuthenticated && userData != null) {
-        // Save login state to shared preferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('userType', userData['userType'] ?? (_isFacultyLogin ? 'faculty' : 'student'));
-        await prefs.setString('userId', id);
-        
-        if (_isFacultyLogin) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => FacultyHomeScreen(facultyData: userData)),
-          );
-        } else if (userData['userType'] == 'admin') {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const AdminScreen()),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => MainScreen(studentData: userData)),
-          );
-        }
+      print('💾 [STORAGE] Saving login state to SharedPreferences...');
+      // Save login state to shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString(
+        'userType',
+        userData['userType'] ?? (_isFacultyLogin ? 'faculty' : 'student'),
+      );
+      await prefs.setString('userId', id);
+      print(
+        '💾 [STORAGE] Saved user type: ${userData['userType'] ?? (_isFacultyLogin ? 'faculty' : 'student')}',
+      );
+
+      // Save student data for persistence
+      if (!_isFacultyLogin && userData['userType'] != 'admin') {
+        await prefs.setString('studentName', userData['name'] ?? 'Student');
+        await prefs.setString(
+          'studentEmail',
+          userData['email'] ?? 'student@somaiya.edu',
+        );
+
+        // Debug: Print entire API response
+        print('📊 [API] Complete API response: $userData');
+        print('🔑 [API] Available keys in response: ${userData.keys.toList()}');
+
+        // IMPORTANT: Use roll_number as primary identifier throughout the app
+        // roll_number (FCUG23762) is used for both login and attendance
+        final attendanceId = id; // Use the login ID (roll_number)
+
+        // Save roll_number to both keys for consistency
+        await prefs.setString('studentId', attendanceId);
+        await prefs.setString('userId', attendanceId);
+        await prefs.setString('rollNumber', attendanceId); // Primary identifier
+        print(
+          '💾 [STORAGE] Using roll_number for all operations: $attendanceId',
+        );
+        print('💾 [STORAGE] Saved studentId: $attendanceId');
+        print('💾 [STORAGE] Saved userId: $attendanceId');
+        print('💾 [STORAGE] Saved rollNumber: $attendanceId');
+        print('💾 [STORAGE] Login ID: $id');
+        print(
+          '💾 [STORAGE] API student_id: ${userData['student_id'] ?? 'NOT_FOUND'}',
+        );
+
+        print('💾 [STORAGE] Saved student data for persistence');
+      }
+
+      print('🚀 [NAVIGATION] Navigating to appropriate screen...');
+      if (_isFacultyLogin) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => FacultyHomeScreen(facultyData: userData),
+          ),
+        );
+        print('👨‍🏫 [NAVIGATION] Navigated to FacultyHomeScreen');
+      } else if (userData['userType'] == 'admin') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AdminScreen()),
+        );
+        print('👑 [NAVIGATION] Navigated to AdminScreen');
       } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => MainScreen(studentData: userData)),
+        );
+        print('🎓 [NAVIGATION] Navigated to MainScreen');
+      }
+    } else {
+      print('❌ [LOGIN] Authentication failed, showing error message...');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -254,10 +367,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        'Invalid PIN',
-                        style: GoogleFonts.inter(),
-                      ),
+                      content: Text('Invalid PIN', style: GoogleFonts.inter()),
                       backgroundColor: const Color(0xFFA50C22),
                       duration: const Duration(seconds: 2),
                     ),
