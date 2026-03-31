@@ -1,0 +1,210 @@
+{
+  "rules": {
+    "theory_duration": 1,
+    "lab_duration": 2
+  },
+
+  "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+
+  "slots": [
+    "9:30-10:30",
+    "10:30-11:30",
+    "11:30-12:30",
+    "1:15-2:15",
+    "2:15-3:15",
+    "3:30-4:30",
+    "4:30-5:30"
+  ],
+
+  "rooms": [
+    {
+      "room_id": "7",
+      "type": "classroom"
+    },
+    {
+      "room_id": "202",
+      "type": "classroom"
+    },
+    {
+      "room_id": "205",
+      "type": "classroom"
+    },
+    {
+      "room_id": "207",
+      "type": "classroom"
+    },
+    {
+      "room_id": "104",
+      "type": "lab"
+    },
+    {
+      "room_id": "LAB2",
+      "type": "lab",
+      "name": "LAN Lab"
+    },
+    {
+      "room_id": "LAB3",
+      "type": "lab",
+      "name": "SE Lab"
+    },
+    {
+      "room_id": "LAB4",
+      "type": "lab",
+      "name": "CC Lab"
+    }
+  ],
+
+  "faculty": [
+    {"id": "F1", "name": "F1"},
+    {"id": "VK", "name": "VK"},
+    {"id": "NRK", "name": "NRK"},
+    {"id": "MK", "name": "MK"},
+    {"id": "CPI", "name": "CPI"},
+    {"id": "SS", "name": "SS"},
+    {"id": "FI", "name": "FI"},
+    {"id": "DGS", "name": "DGS"},
+    {"id": "DM", "name": "DM"},
+    {"id": "VJK", "name": "VJK"},
+    {"id": "PS", "name": "PS"}
+  ],
+
+  "semesters": [
+    {
+      "sem": "SEM2",
+      "subjects": [
+        {
+          "name": "Physics",
+          "faculty": "VJK",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Computer Skills",
+          "faculty": "DM",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Basic Mathematics",
+          "faculty": "DGS",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Web Development Lab",
+          "faculty": "PS",
+          "type": "lab",
+          "room_type": "lab"
+        },
+        {
+          "name": "ICT Lab",
+          "faculty": "DM",
+          "type": "lab",
+          "room_type": "lab"
+        }
+      ]
+    },
+
+    {
+      "sem": "SEM4",
+      "subjects": [
+        {
+          "name": "Microprocessor",
+          "faculty": "CPI",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Computer Networks",
+          "faculty": "SS",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "C Programming",
+          "faculty": "FI",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "C++ Programming",
+          "faculty": "NRP",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Engineering Mathematics",
+          "faculty": "DGS",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "C Lab",
+          "faculty": "FI",
+          "type": "lab",
+          "room_type": "lab"
+        },
+        {
+          "name": "C++ Lab",
+          "faculty": "NRP",
+          "type": "lab",
+          "room_type": "lab"
+        },
+        {
+          "name": "PHP Lab",
+          "faculty": "F2",
+          "type": "lab",
+          "room_type": "lab"
+        }
+      ]
+    },
+
+    {
+      "sem": "SEM6",
+      "subjects": [
+        {
+          "name": "Internet Programming",
+          "faculty": "F1",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Software Engineering",
+          "faculty": "VK",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "Computer Networks",
+          "faculty": "NRK",
+          "type": "theory",
+          "room_type": "classroom"
+        },
+        {
+          "name": "LAN Lab",
+          "faculty": "MK",
+          "type": "lab",
+          "room_type": "lab"
+        },
+        {
+          "name": "SE Lab",
+          "faculty": "VK",
+          "type": "lab",
+          "room_type": "lab"
+        },
+        {
+          "name": "CC Lab",
+          "faculty": "NRK",
+          "type": "lab",
+          "room_type": "lab"
+        },
+        {
+          "name": "Project",
+          "faculty": "NRK",
+          "type": "theory",
+          "room_type": "classroom"
+        }
+      ]
+    }
+  ]
+}
