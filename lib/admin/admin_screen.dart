@@ -1,4 +1,3 @@
-import 'package:attendance_tracker/admin/timetable_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -283,9 +282,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   subtitle: 'Update schedules',
                   color: const Color(0xFFA50C22),
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const TimetableMakerScreen()),
-                    );
+                    // TODO: Navigate to timetable upload
                   },
                 ),
                 
