@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../admin/faculty_bulk_upload_screen.dart';
 
 class RegisterFacultyScreen extends StatefulWidget {
   const RegisterFacultyScreen({Key? key}) : super(key: key);
@@ -245,7 +246,7 @@ class _RegisterFacultyScreenState extends State<RegisterFacultyScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Faculty Registration',
+                                'Bulk Faculty Upload',
                                 style: GoogleFonts.inter(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -254,10 +255,39 @@ class _RegisterFacultyScreenState extends State<RegisterFacultyScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Fill in the faculty details below',
+                                'Upload Excel file with faculty data',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   color: const Color(0xFF6B7280),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (_) => FacultyBulkUploadScreen(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.upload_file),
+                                label: Text(
+                                  'Go to Bulk Upload',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4A1942),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                               ),
                             ],
