@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
@@ -34,6 +35,7 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
     'year',
     'roll_number',
     'sgpa',
+    'lab_batch',
   ];
 
   // ───────────────────────────── Download ─────────────────────────────
@@ -77,6 +79,7 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
         '2',
         '101',
         '8.5',
+        'C1',
       ];
 
       final hintStyle = CellStyle(
@@ -95,21 +98,24 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
       final fileBytes = excel.save();
       if (fileBytes == null) throw Exception('Failed to generate Excel file');
 
-      // Save to downloads / documents directory
-      final directory = Platform.isAndroid
-          ? Directory('/storage/emulated/0/Download')
-          : await getApplicationDocumentsDirectory();
+      // Write to temp first, then let OS handle save destination
+      final tempDir = await getTemporaryDirectory();
+      await File('${tempDir.path}/student_upload_format.xlsx')
+          .writeAsBytes(fileBytes);
 
-      final filePath =
-          '${directory.path}/student_upload_format.xlsx';
-      final file = File(filePath);
-      await file.writeAsBytes(fileBytes);
+      // saveFile shows the native "Save to..." picker (works Android 10+ & iOS)
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: 'Save Student Template',
+        fileName: 'student_upload_format.xlsx',
+        bytes: Uint8List.fromList(fileBytes),
+      );
 
       if (mounted) {
-        _showSnackBar(
-          '✅ Template saved to:\n$filePath',
-          Colors.green,
-        );
+        if (savedPath != null) {
+          _showSnackBar('✅ Template saved successfully!', Colors.green);
+        } else {
+          _showSnackBar('ℹ️ Save cancelled', Colors.orange);
+        }
       }
     } catch (e) {
       if (mounted) _showSnackBar('❌ Download failed: $e', Colors.red);
@@ -173,11 +179,32 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
         final Map<String, dynamic> studentData = {};
         for (int j = 0; j < headers.length && j < row.length; j++) {
           var key = headers[j];
-          final value = row[j]?.value?.toString().trim() ?? '';
-          if (key.isNotEmpty && value.isNotEmpty) {
-            // The API expects "password", but the Excel column is labelled
-            // "password_hash" to match the DB schema — remap it here.
-            if (key == 'password_hash') key = 'password';
+          if (key.isEmpty) continue;
+
+          // Remap Excel column name to what the API expects.
+          if (key == 'password_hash') key = 'password';
+
+          final cellValue = row[j]?.value;
+          if (cellValue == null) continue;
+
+          String value;
+          if (key == 'sgpa') {
+            // sgpa: keep decimals exactly as entered
+            value = cellValue.toString().trim();
+          } else {
+            // All other columns: never allow decimal conversion.
+            // If Excel parsed the cell as a double, convert to int first
+            // so "9876543210.0" becomes "9876543210", not a rounded float.
+            if (cellValue is DoubleCellValue) {
+              value = cellValue.value.toInt().toString();
+            } else if (cellValue is IntCellValue) {
+              value = cellValue.value.toString();
+            } else {
+              value = cellValue.toString().trim();
+            }
+          }
+
+          if (value.isNotEmpty) {
             studentData[key] = value;
           }
         }
@@ -305,13 +332,13 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F3F6),
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text(
           'Bulk Student Upload',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: const Color(0xFFA50C22),
+        backgroundColor: const Color(0xFF1E3A5F),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -325,13 +352,13 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFA50C22).withOpacity(0.08),
+                  color: const Color(0xFF1E3A5F).withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.table_chart_rounded,
                   size: 64,
-                  color: Color(0xFFA50C22),
+                  color: Color(0xFF1E3A5F),
                 ),
               ),
               const SizedBox(height: 24),
@@ -340,7 +367,7 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFA50C22),
+                  color: Color(0xFF1E3A5F),
                 ),
               ),
               const SizedBox(height: 8),
@@ -360,7 +387,7 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
                 icon: Icons.download_rounded,
                 title: 'Download Excel Format',
                 subtitle: 'Get the template with all required columns',
-                color: const Color(0xFFA50C22),
+                color: const Color(0xFF1E3A5F),
                 isLoading: _isDownloading,
                 onTap: _downloadExcelFormat,
               ),
@@ -372,7 +399,7 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
                 icon: Icons.upload_file_rounded,
                 title: 'Upload Excel File',
                 subtitle: 'Select your filled Excel file to register students',
-                color: const Color(0xFFA50C22),
+                color: const Color(0xFF2E7D32),
                 isLoading: _isUploading,
                 onTap: _uploadExcelFile,
               ),
@@ -392,9 +419,9 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
                           style: const TextStyle(fontSize: 11),
                         ),
                         backgroundColor:
-                            const Color(0xFFA50C22).withOpacity(0.08),
+                            const Color(0xFF1E3A5F).withOpacity(0.08),
                         labelStyle:
-                            const TextStyle(color: Color(0xFFA50C22)),
+                            const TextStyle(color: Color(0xFF1E3A5F)),
                         padding: EdgeInsets.zero,
                         materialTapTargetSize:
                             MaterialTapTargetSize.shrinkWrap,

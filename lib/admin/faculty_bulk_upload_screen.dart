@@ -43,11 +43,17 @@ class _FacultyBulkUploadScreenState extends State<FacultyBulkUploadScreen> {
 
       excel.delete('Sheet1');
 
+      // Header row — bold + background
       final headerStyle = CellStyle(
         bold: true,
         backgroundColorHex: ExcelColor.fromHexString('#A50C22'),
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
         horizontalAlign: HorizontalAlign.Center,
+      );
+
+      // Text format for columns that should remain as text (not numbers)
+      final textFormatStyle = CellStyle(
+        horizontalAlign: HorizontalAlign.Left,
       );
 
       for (int i = 0; i < _excelColumns.length; i++) {
@@ -56,31 +62,17 @@ class _FacultyBulkUploadScreenState extends State<FacultyBulkUploadScreen> {
         );
         cell.value = TextCellValue(_excelColumns[i]);
         cell.cellStyle = headerStyle;
-        sheet.setColumnWidth(i, 22);
-      }
+        sheet.setColumnWidth(i, 20);
 
-      // Sample hint row
-      final hintValues = [
-        'FAC001',
-        'plaintext_password',
-        'Dr. Jane Smith',
-        'jane@example.com',
-        '9876543210',
-        'Computer Science',
-        'Associate Professor',
-      ];
-
-      final hintStyle = CellStyle(
-        italic: true,
-        fontColorHex: ExcelColor.fromHexString('#888888'),
-      );
-
-      for (int i = 0; i < hintValues.length; i++) {
-        final cell = sheet.cell(
-          CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 1),
-        );
-        cell.value = TextCellValue(hintValues[i]);
-        cell.cellStyle = hintStyle;
+        // Force text format for ID and phone columns by adding apostrophe prefix
+        if (_excelColumns[i] == 'faculty_id' || _excelColumns[i] == 'phone') {
+          final textFormatCell = sheet.cell(
+            CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 1),
+          );
+          textFormatCell.cellStyle = textFormatStyle;
+          // Add apostrophe to force Excel text format
+          textFormatCell.value = TextCellValue("'"); // Apostrophe forces text format
+        }
       }
 
       final fileBytes = excel.save();
