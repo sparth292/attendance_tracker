@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "156610318192",
+    "project_id": "final-year-project-ecbf3",
+    "storage_bucket": "final-year-project-ecbf3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:156610318192:android:1a37c3b9058d30d6ac49b5",
+        "android_client_info": {
+          "package_name": "com.example.attendance_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDryTZJM0aE4Fr--1kwzRc2lvYejLmfy3g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

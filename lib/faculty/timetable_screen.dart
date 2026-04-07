@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class TimetableScreen extends StatefulWidget {
   final Map<String, dynamic>? facultyData;
@@ -81,12 +83,35 @@ class _TimetableScreenState extends State<TimetableScreen>
 
   Future<void> _loadFacultyData() async {
     try {
+      // Get faculty ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+
+      print('📋 [TIMETABLE] Loading timetable for faculty ID: $facultyId');
+
+      // Fetch timetable from API
+      final timetableData = await _fetchTimetableFromAPI(facultyId);
+
+      setState(() {
+        facultyInfo = {'id': facultyId};
+        _days = _generateTimetableFromAPI(timetableData);
+      });
+    } catch (e) {
+      print("❌ [TIMETABLE] Error loading faculty data: $e");
+      // Fallback to local data if API fails
+      _loadLocalFacultyData();
+    }
+  }
+
+  // Fallback method to load local data
+  Future<void> _loadLocalFacultyData() async {
+    try {
       final String jsonString = await rootBundle.loadString(
         'assets/json/faculty.json',
       );
       final Map<String, dynamic> data = json.decode(jsonString);
 
-      final facultyId = widget.facultyData?['id'] ?? "Manjiri";
+      final facultyId = widget.facultyData?['id'] ?? "Faculty";
       final faculty = data[facultyId];
 
       setState(() {
@@ -94,7 +119,32 @@ class _TimetableScreenState extends State<TimetableScreen>
         _days = _generateTimetableFromFacultyData();
       });
     } catch (e) {
-      print("Error loading faculty data: $e");
+      print("❌ [TIMETABLE] Error loading local faculty data: $e");
+    }
+  }
+
+  // Fetch timetable from API
+  Future<List<Map<String, dynamic>>> _fetchTimetableFromAPI(
+    String facultyId,
+  ) async {
+    final url = Uri.parse(
+      "http://13.235.16.3:5000/api/faculty/full-timetable?faculty_id=$facultyId",
+    );
+
+    print('📡 [API] Fetching timetable from: $url');
+
+    final response = await http.get(
+      url,
+      headers: {"Content-Type": "application/json"},
+    );
+
+    print('📊 [API] Response status: ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data);
+    } else {
+      throw Exception("Failed to fetch timetable: ${response.statusCode}");
     }
   }
 
@@ -116,7 +166,54 @@ class _TimetableScreenState extends State<TimetableScreen>
     '4:30\n5:30',
   ];
 
-  // ── Generate timetable from faculty data ─────────────────────────────
+  // ── Generate timetable from API response ─────────────────────────────
+  List<Map<String, dynamic>> _generateTimetableFromAPI(
+    List<Map<String, dynamic>> apiData,
+  ) {
+    final timetable = <String, Map<String, dynamic>>{};
+
+    // Initialize all slots as empty
+    const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    for (int day = 0; day < 6; day++) {
+      timetable[dayLabels[day]] = {
+        'label': dayLabels[day],
+        'full': _getDayFullName(dayLabels[day]),
+        'subjects': List.generate(
+          7,
+          (slotIndex) => {'subject': '', 'batch': '', 'room': ''},
+        ),
+      };
+    }
+
+    // Fill slots with API data
+    for (final entry in apiData) {
+      final day = entry['day_of_week'] as String;
+      final startTime = entry['start_time'] as String;
+      final courseName = entry['course_name'] as String;
+      final room = entry['room_number'] as String;
+      final batch = entry['batch'] as String? ?? '';
+      final sessionType = entry['session_type'] as String;
+
+      final dayIndex = _getDayIndex(day);
+      if (dayIndex != -1) {
+        final slotIndex = _getSlotIndexFromTime(startTime);
+        if (slotIndex != -1 && slotIndex != 2) {
+          // Not lunch
+          timetable[dayLabels[dayIndex]]!['subjects'][slotIndex] = {
+            'subject': _getSubjectAbbreviation(courseName),
+            'batch': batch,
+            'room': room,
+            'course_name': courseName,
+            'session_type': sessionType,
+          };
+        }
+      }
+    }
+
+    return timetable.values.toList();
+  }
+
+  // ── Generate timetable from faculty data (fallback) ─────────────────────
   List<Map<String, dynamic>> _generateTimetableFromFacultyData() {
     final timetable = <String, Map<String, dynamic>>{};
 
@@ -197,6 +294,25 @@ class _TimetableScreenState extends State<TimetableScreen>
     return slotMap[timeSlot] ?? -1;
   }
 
+  // Convert time string from API (HH:MM:SS) to slot index
+  int _getSlotIndexFromTime(String timeString) {
+    final timeParts = timeString.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+
+    final totalMinutes = hour * 60 + minute;
+
+    // Map time ranges to slot indices
+    if (totalMinutes >= 630 && totalMinutes < 690) return 0; // 10:30-11:30
+    if (totalMinutes >= 690 && totalMinutes < 750) return 1; // 11:30-12:30
+    if (totalMinutes >= 795 && totalMinutes < 855) return 3; // 13:15-14:15
+    if (totalMinutes >= 855 && totalMinutes < 915) return 4; // 14:15-15:15
+    if (totalMinutes >= 930 && totalMinutes < 990) return 5; // 15:30-16:30
+    if (totalMinutes >= 990 && totalMinutes < 1050) return 6; // 16:30-17:30
+
+    return -1; // No matching slot
+  }
+
   String _getSubjectAbbreviation(String subjectName) {
     final abbreviations = {
       'Image Processing': 'IP',
@@ -209,6 +325,8 @@ class _TimetableScreenState extends State<TimetableScreen>
       'Operating Systems': 'OS',
       'Web Development': 'WD',
       'Local Area Networks': 'LAN',
+      'Web Design Lab': 'WD LAB',
+      'Software Engineering LAB': 'SE LAB',
     };
     return abbreviations[subjectName] ??
         subjectName.substring(0, 3).toUpperCase();
@@ -310,7 +428,7 @@ class _TimetableScreenState extends State<TimetableScreen>
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        facultyInfo!['department'] ?? "Computer Engineering",
+                        facultyInfo?['id'] ?? "FAC001",
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: const Color(0xFF6B7280),

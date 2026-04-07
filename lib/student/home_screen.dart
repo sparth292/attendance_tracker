@@ -2,53 +2,259 @@ import 'package:attendance_tracker/student/subjects_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'timetable_screen.dart';
 import 'attendance_tracker_screen.dart';
 import 'notifications_screen.dart';
 import '../upcoming_events_screen.dart';
+import 'uploaded_materials_screen.dart';
+import '../services/api_service.dart';
+import '../services/announcement_service.dart';
+import 'subjects_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Map<String, dynamic>? studentData;
-  
-  const HomeScreen({Key? key, this.studentData}) : super(key: key);
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  Map<String, String>? _studentData;
   Map<String, dynamic>? _attendanceData;
   double _overallPercentage = 0.0;
+  Map<String, dynamic>? _currentLecture;
+  Timer? _lectureTimer;
 
   @override
   void initState() {
     super.initState();
+    _loadStudentData();
     _loadAttendanceData();
+    _loadCurrentLecture();
+
+    // Update current lecture every 30 seconds
+    _lectureTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _loadCurrentLecture();
+    });
+  }
+
+  @override
+  void dispose() {
+    _lectureTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadStudentData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final studentName = prefs.getString('studentName') ?? 'Loading...';
+      final studentRollNumber =
+          prefs.getString('studentRollNumber') ?? 'Loading...';
+
+      setState(() {
+        _studentData = {'name': studentName, 'roll_number': studentRollNumber};
+      });
+
+      print('📋 [HOME] Loaded student data for app bar:');
+      print('📋 [HOME] Name: $studentName');
+      print('📋 [HOME] Roll Number: $studentRollNumber');
+    } catch (e) {
+      print('❌ [HOME] Error loading student data: $e');
+    }
   }
 
   Future<void> _loadAttendanceData() async {
     try {
-      // Get current user ID from shared preferences
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('userId') ?? '';
-      
-      if (userId.isNotEmpty) {
-        // Load attendance data
-        final attendanceJson = await rootBundle.loadString('assets/json/attendance_percentage.json');
-        final attendanceMap = json.decode(attendanceJson);
-        
-        if (attendanceMap.containsKey(userId)) {
+      final studentRollNumber =
+          prefs.getString('studentRollNumber') ?? 'FCUG23762';
+
+      print(
+        '📊 [HOME] Loading attendance data for student: $studentRollNumber',
+      );
+
+      // Load attendance data from local JSON file
+      final String jsonString = await rootBundle.loadString(
+        'assets/json/attendance_percentage.json',
+      );
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      final studentAttendance = jsonData[studentRollNumber];
+
+      if (studentAttendance != null) {
+        setState(() {
+          _attendanceData = studentAttendance;
+          _overallPercentage = (studentAttendance['overallPercentage'] ?? 0.0)
+              .toDouble();
+        });
+
+        print('📊 [HOME] Attendance data loaded successfully');
+        print('📊 [HOME] Overall percentage: ${_overallPercentage}%');
+      } else {
+        print(
+          '❌ [HOME] No attendance data found for student: $studentRollNumber',
+        );
+        setState(() {
+          _overallPercentage = 0.0;
+        });
+      }
+    } catch (e) {
+      print('❌ [HOME] Error loading attendance data: $e');
+      setState(() {
+        _overallPercentage = 0.0;
+      });
+    }
+  }
+
+  Future<void> _loadCurrentLecture() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final studentBatch = prefs.getString('studentYear') ?? '';
+      final studentLabBatch = prefs.getString('studentLabBatch') ?? '';
+
+      if (studentBatch.isEmpty) {
+        print('❌ [HOME] No batch found for current lecture');
+        setState(() {
+          _currentLecture = null;
+        });
+        return;
+      }
+
+      // Get current IST time
+      final now = DateTime.now().toUtc().add(
+        const Duration(hours: 5, minutes: 30),
+      );
+      final currentDay = _getDayOfWeek(now.weekday);
+      final currentTime = _formatTime(now.hour, now.minute);
+
+      print(
+        '🏫 [HOME] Checking current lecture for $currentDay at $currentTime',
+      );
+
+      final url = 'http://13.235.16.3:5001/timetable?batch=$studentBatch';
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final List<dynamic> timetableData = data['data'];
+
+          // Find current lecture
+          Map<String, dynamic>? currentLecture;
+
+          for (final entry in timetableData) {
+            final day = entry['day_of_week'] as String;
+            final sessionType = entry['session_type'] as String;
+            final labBatch = entry['lab_batch'] as String?;
+            final startTime = entry['start_time'] as String;
+            final endTime = entry['end_time'] as String;
+
+            // Skip if it's a lab for a different batch
+            if (sessionType == 'LAB' &&
+                labBatch != null &&
+                labBatch != studentLabBatch) {
+              continue;
+            }
+
+            // Check if this session is currently ongoing
+            if (day == currentDay &&
+                _isTimeInCurrentSlot(startTime, endTime, currentTime)) {
+              currentLecture = entry;
+              break;
+            }
+          }
+
           setState(() {
-            _attendanceData = attendanceMap[userId];
-            _overallPercentage = _attendanceData?['overallPercentage']?.toDouble() ?? 0.0;
+            _currentLecture = currentLecture;
           });
+
+          if (currentLecture != null) {
+            print(
+              '🏫 [HOME] Found current lecture: ${currentLecture['course_code']}',
+            );
+          } else {
+            print('🏫 [HOME] No current lecture found');
+          }
         }
       }
     } catch (e) {
-      print('Error loading attendance data: $e');
+      print('❌ [HOME] Error loading current lecture: $e');
+      setState(() {
+        _currentLecture = null;
+      });
     }
+  }
+
+  String _getDayOfWeek(int weekday) {
+    switch (weekday) {
+      case 1:
+        return 'MON';
+      case 2:
+        return 'TUE';
+      case 3:
+        return 'WED';
+      case 4:
+        return 'THU';
+      case 5:
+        return 'FRI';
+      case 6:
+        return 'SAT';
+      case 7:
+        return 'SUN';
+      default:
+        return '';
+    }
+  }
+
+  String _formatTime(int hour, int minute) {
+    final h = hour.toString().padLeft(2, '0');
+    final m = minute.toString().padLeft(2, '0');
+    return '$h:$m:00';
+  }
+
+  bool _isTimeInCurrentSlot(
+    String startTime,
+    String endTime,
+    String currentTime,
+  ) {
+    try {
+      final start = DateTime.parse('2000-01-01 $startTime');
+      final end = DateTime.parse('2000-01-01 $endTime');
+      final current = DateTime.parse('2000-01-01 $currentTime');
+
+      return current.isAfter(start.subtract(const Duration(seconds: 1))) &&
+          current.isBefore(end.add(const Duration(seconds: 1)));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> _refreshHomeData() async {
+    print('🔄 [HOME] Refreshing home data...');
+
+    // Refresh student data
+    await _loadStudentData();
+
+    // Refresh attendance data
+    await _loadAttendanceData();
+
+    // Refresh current lecture
+    await _loadCurrentLecture();
+
+    // Trigger announcement check for new notifications
+    try {
+      final announcementService = AnnouncementService();
+      await announcementService.checkAndNotifyNewAnnouncements();
+      print('🔔 [HOME] Announcement check completed during refresh');
+    } catch (e) {
+      print('❌ [HOME] Error checking announcements during refresh: $e');
+    }
+
+    print('✅ [HOME] Home data refresh completed');
   }
 
   @override
@@ -94,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            widget.studentData?['name'] ?? "Parth Salunke",
+                            _studentData?['name'] ?? "Loading...",
                             style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -103,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            "FCUG23749",
+                            _studentData?['roll_number'] ?? "Loading...",
                             style: GoogleFonts.inter(
                               color: Colors.white70,
                               fontSize: 13,
@@ -143,38 +349,47 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                /// ─── CURRENT LECTURE ───────────────────────────────────────
-                _sectionLabel("Current Lecture"),
-                const SizedBox(height: 10),
-                const _CurrentLectureCard(),
+          child: RefreshIndicator(
+            onRefresh: _refreshHomeData,
+            child: SingleChildScrollView(
+              physics:
+                  const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  /// ─── CURRENT LECTURE ───────────────────────────────────────
+                  _sectionLabel("Current Lecture"),
+                  const SizedBox(height: 10),
+                  _CurrentLectureCard(currentLecture: _currentLecture),
 
-                const SizedBox(height: 22),
+                  const SizedBox(height: 22),
 
-                /// ─── ATTENDANCE TRACKER ────────────────────────────────────
-                _sectionLabel("Attendance Tracker"),
-                const SizedBox(height: 10),
-                GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AttendanceTrackerScreen()),
-                  );
-                },
-                child: _AttendanceCard(overallPercentage: _overallPercentage),
+                  /// ─── ATTENDANCE TRACKER ────────────────────────────────────
+                  _sectionLabel("Attendance Tracker"),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AttendanceTrackerScreen(),
+                        ),
+                      );
+                    },
+                    child: _AttendanceCard(
+                      overallPercentage: _overallPercentage,
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  /// ─── QUICK ACCESS ──────────────────────────────────────────
+                  _sectionLabel("Quick Access"),
+                  const SizedBox(height: 12),
+                  _QuickAccessGrid(context: context),
+                ],
               ),
-
-                const SizedBox(height: 22),
-
-                /// ─── QUICK ACCESS ──────────────────────────────────────────
-                _sectionLabel("Quick Access"),
-                const SizedBox(height: 12),
-                _QuickAccessGrid(context: context),
-              ],
             ),
           ),
         ),
@@ -198,10 +413,137 @@ Widget _sectionLabel(String title) {
 
 /// ── Current Lecture Card ──────────────────────────────────────────────────
 class _CurrentLectureCard extends StatelessWidget {
-  const _CurrentLectureCard();
+  final Map<String, dynamic>? currentLecture;
+
+  const _CurrentLectureCard({required this.currentLecture});
 
   @override
   Widget build(BuildContext context) {
+    // If no current lecture, show a "No ongoing lecture" card
+    if (currentLecture == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            /// Red header band
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFFA50C22),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(11),
+                  topRight: Radius.circular(11),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "No Ongoing Lectures",
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          "Check timetable for next class",
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.white60,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white30),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF9CA3AF),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          "Free Time",
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            /// Details body
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                children: [
+                  _lectureInfoRow(
+                    Icons.access_time_rounded,
+                    "Current Time",
+                    _formatCurrentTime(),
+                  ),
+                  const _divider(),
+                  _lectureInfoRow(
+                    Icons.calendar_today_outlined,
+                    "Status",
+                    "No classes in progress",
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show current lecture data
+    final courseCode = currentLecture!['course_code'] as String;
+    final courseName = currentLecture!['course_name'] as String;
+    final facultyId = currentLecture!['faculty_id'] as String;
+    final roomNumber = currentLecture!['room_number'] as String;
+    final startTime = currentLecture!['start_time'] as String;
+    final endTime = currentLecture!['end_time'] as String;
+    final sessionType = currentLecture!['session_type'] as String;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -236,7 +578,7 @@ class _CurrentLectureCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Image Processing",
+                        courseName,
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -245,7 +587,7 @@ class _CurrentLectureCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        "023RC22",
+                        courseCode,
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: Colors.white60,
@@ -299,22 +641,26 @@ class _CurrentLectureCard extends StatelessWidget {
               children: [
                 _lectureInfoRow(
                   Icons.person_outline_rounded,
-                  "Lecturer",
-                  "Manjiri Samant",
+                  "Faculty",
+                  facultyId,
                 ),
                 const _divider(),
                 _lectureInfoRow(
                   Icons.access_time_rounded,
                   "Time Slot",
-                  "10:30 AM – 11:30 AM",
+                  _formatTimeRange(startTime, endTime),
                 ),
                 const _divider(),
-                _lectureInfoRow(Icons.meeting_room_outlined, "Room No", "207"),
+                _lectureInfoRow(
+                  Icons.meeting_room_outlined,
+                  "Room No",
+                  roomNumber,
+                ),
                 const _divider(),
                 _lectureInfoRow(
                   Icons.computer_outlined,
-                  "Department",
-                  "Computer",
+                  "Type",
+                  sessionType == 'LAB' ? 'Laboratory' : 'Lecture',
                 ),
               ],
             ),
@@ -322,6 +668,25 @@ class _CurrentLectureCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatCurrentTime() {
+    final now = DateTime.now().toUtc().add(
+      const Duration(hours: 5, minutes: 30),
+    );
+    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatTimeRange(String startTime, String endTime) {
+    final start = DateTime.parse('2000-01-01 $startTime');
+    final end = DateTime.parse('2000-01-01 $endTime');
+
+    final startFormatted =
+        '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+    final endFormatted =
+        '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+
+    return '$startFormatted - $endFormatted';
   }
 
   Widget _lectureInfoRow(IconData icon, String label, String value) {
@@ -361,7 +726,7 @@ class _divider extends StatelessWidget {
 /// ── Attendance Tracker Card ───────────────────────────────────────────────
 class _AttendanceCard extends StatelessWidget {
   final double overallPercentage;
-  
+
   const _AttendanceCard({required this.overallPercentage});
 
   @override
@@ -542,13 +907,22 @@ class _QuickAccessGrid extends StatelessWidget {
         ),
       ),
       _QuickItem(
-        icon: Icons.event_outlined, 
-        label: "Events", 
+        icon: Icons.event_outlined,
+        label: "Events",
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const UpcomingEventsScreen()),
         ),
       ),
+      _QuickItem(
+        icon: Icons.folder_outlined,
+        label: "Materials",
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const UploadedMaterialsScreen()),
+        ),
+      ),
+      
       _QuickItem(
         icon: Icons.menu_book_outlined,
         label: "Subjects",
@@ -556,12 +930,6 @@ class _QuickAccessGrid extends StatelessWidget {
           context,
           MaterialPageRoute(builder: (_) => const SubjectsScreen()),
         ),
-      ),
-      
-      _QuickItem(
-        icon: Icons.receipt_long_outlined,
-        label: "Concession",
-        onTap: () {},
       ),
     ];
 

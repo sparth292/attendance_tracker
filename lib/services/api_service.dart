@@ -25,6 +25,27 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> facultyLogin(
+    String facultyId,
+    String password,
+  ) async {
+    final url = Uri.parse("$baseUrl/faculty/login");
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"faculty_id": facultyId, "password": password}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data;
+    } else {
+      throw Exception(data["error"] ?? "Faculty login failed");
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> getActiveSessions() async {
     final url = Uri.parse("$baseUrl/sessions/active");
 

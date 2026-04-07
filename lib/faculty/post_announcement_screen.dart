@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/api_service.dart';
 
 class PostAnnouncementScreen extends StatefulWidget {
   const PostAnnouncementScreen({Key? key}) : super(key: key);
@@ -12,16 +16,11 @@ class _PostAnnouncementScreenState extends State<PostAnnouncementScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  String _selectedAudience = 'All Students';
+  String _selectedAudience = 'FYCO';
   String _selectedPriority = 'Normal';
-  List<String> _audiences = [
-    'All Students',
-    'TE COMP A',
-    'TE COMP B',
-    'BE COMP A',
-    'BE COMP B',
-  ];
-  List<String> _priorities = ['Normal', 'Important', 'Urgent'];
+  List<String> _audiences = ['FYCO', 'SYCO', 'TYCO'];
+  List<String> _priorities = ['Normal', 'Medium', 'High'];
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +178,7 @@ class _PostAnnouncementScreenState extends State<PostAnnouncementScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _postAnnouncement,
+                  onPressed: _isLoading ? null : _postAnnouncement,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFA50C22),
                     foregroundColor: Colors.white,
@@ -188,13 +187,22 @@ class _PostAnnouncementScreenState extends State<PostAnnouncementScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    "Post Announcement",
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          "Post Announcement",
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -257,13 +265,13 @@ class _PostAnnouncementScreenState extends State<PostAnnouncementScreen> {
           color: Color(0xFF6B7280),
           size: 16,
         );
-      case 'Important':
+      case 'Medium':
         return const Icon(
           Icons.priority_high,
           color: Color(0xFFF57C00),
           size: 16,
         );
-      case 'Urgent':
+      case 'High':
         return const Icon(
           Icons.notifications_active,
           color: Color(0xFFD32F2F),
@@ -278,19 +286,82 @@ class _PostAnnouncementScreenState extends State<PostAnnouncementScreen> {
     }
   }
 
-  void _postAnnouncement() {
+  void _postAnnouncement() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement announcement posting logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Announcement posted successfully!",
-            style: GoogleFonts.inter(),
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Get faculty data from SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+        final department =
+            prefs.getString('facultyDepartment') ?? 'Computer Engineering';
+
+        // Map audience to batch
+        String batch = _selectedAudience;
+
+        // Prepare the request body
+        final requestBody = {
+          "title": _titleController.text.trim(),
+          "content": _contentController.text.trim(),
+          "faculty_id": facultyId,
+          "department": department,
+          "batch": batch,
+          "priority": _selectedPriority,
+        };
+
+        print(
+          '📡 [API] Posting announcement to ${ApiService.baseUrl}/announcements',
+        );
+        print('📋 [API] Request body: $requestBody');
+
+        // Make the API call
+        final url = Uri.parse("${ApiService.baseUrl}/announcements");
+        final response = await http.post(
+          url,
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode(requestBody),
+        );
+
+        print('📡 [API] Response status: ${response.statusCode}');
+        print('📡 [API] Response body: ${response.body}');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Announcement posted successfully!",
+                style: GoogleFonts.inter(),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Clear form and go back
+          _titleController.clear();
+          _contentController.clear();
+          Navigator.pop(context);
+        } else {
+          final errorData = jsonDecode(response.body);
+          throw Exception(errorData["error"] ?? "Failed to post announcement");
+        }
+      } catch (e) {
+        print('❌ [API] Error posting announcement: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString()}", style: GoogleFonts.inter()),
+            backgroundColor: Colors.red,
           ),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

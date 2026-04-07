@@ -2,10 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class FacultyProfileScreen extends StatelessWidget {
+class FacultyProfileScreen extends StatefulWidget {
   final Map<String, dynamic>? facultyData;
-  
-  const FacultyProfileScreen({super.key, this.facultyData});
+
+  const FacultyProfileScreen({Key? key, this.facultyData}) : super(key: key);
+
+  @override
+  State<FacultyProfileScreen> createState() => _FacultyProfileScreenState();
+}
+
+class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
+  Map<String, String>? _facultyData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFacultyData();
+  }
+
+  Future<void> _loadFacultyData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final facultyName = prefs.getString('facultyName') ?? 'Faculty Member';
+      final facultyEmail =
+          prefs.getString('facultyEmail') ?? 'faculty@somaiya.edu';
+      final facultyDepartment =
+          prefs.getString('facultyDepartment') ?? 'Faculty Department';
+      final facultyDesignation =
+          prefs.getString('facultyDesignation') ?? 'Professor';
+      final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+      final facultyPhone = prefs.getString('facultyPhone') ?? '+91 98765 40001';
+
+      setState(() {
+        _facultyData = {
+          'name': facultyName,
+          'email': facultyEmail,
+          'department': facultyDepartment,
+          'designation': facultyDesignation,
+          'faculty_id': facultyId,
+          'phone': facultyPhone,
+        };
+      });
+
+      print('📋 [PROFILE] Loaded faculty data from SharedPreferences:');
+      print('📋 [PROFILE] Name: $facultyName');
+      print('📋 [PROFILE] Email: $facultyEmail');
+      print('📋 [PROFILE] Department: $facultyDepartment');
+      print('📋 [PROFILE] Designation: $facultyDesignation');
+      print('📋 [PROFILE] Faculty ID: $facultyId');
+      print('📋 [PROFILE] Phone: $facultyPhone');
+    } catch (e) {
+      print('❌ [PROFILE] Error loading faculty data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +111,7 @@ class FacultyProfileScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            facultyData?['name'] ?? "Manjiri Samant",
+                            _facultyData?['name'] ?? "Loading...",
                             style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -71,7 +120,7 @@ class FacultyProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "${facultyData?['email'] ?? "manjiris@somaiya.edu"} | ${facultyData?['department'] ?? "Computer Engineering"}",
+                            "${_facultyData?['email'] ?? "Loading..."} | ${_facultyData?['department'] ?? "Loading..."}",
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: const Color(0xFF6B7280),
@@ -141,22 +190,17 @@ class FacultyProfileScreen extends StatelessWidget {
                     _buildProfileInfoRow(
                       Icons.email_outlined,
                       "Email",
-                      facultyData?['email'] ?? "manjiris@somaiya.edu",
+                      _facultyData?['email'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.phone_outlined,
                       "Phone",
-                      facultyData?['phone'] ?? "+91 98765 43210",
+                      _facultyData?['phone'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.badge_outlined,
                       "Employee ID",
-                      facultyData?['id'] ?? "FAC001",
-                    ),
-                    _buildProfileInfoRow(
-                      Icons.location_on_outlined,
-                      "Office",
-                      facultyData?['office'] ?? "Room 207, Building A",
+                      _facultyData?['faculty_id'] ?? "Loading...",
                     ),
 
                     const SizedBox(height: 24),
@@ -174,41 +218,16 @@ class FacultyProfileScreen extends StatelessWidget {
                     _buildProfileInfoRow(
                       Icons.work_outlined,
                       "Designation",
-                      facultyData?['designation'] ?? "Assistant Professor",
+                      _facultyData?['designation'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.school_outlined,
                       "Department",
-                      facultyData?['department'] ?? "Computer Engineering",
-                    ),
-                    _buildProfileInfoRow(
-                      Icons.calendar_today_outlined,
-                      "Experience",
-                      "5 Years",
-                    ),
-                    _buildProfileInfoRow(
-                      Icons.book_outlined,
-                      "Specialization",
-                      "Image Processing",
+                      _facultyData?['department'] ?? "Loading...",
                     ),
 
-                    const SizedBox(height: 24),
-
-                    // Actions
-                    Divider(color: const Color(0xFFE5E7EB)),
-                    const SizedBox(height: 16),
-                    _buildActionRow(Icons.edit_outlined, "Edit Profile", () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Edit profile feature coming soon!",
-                            style: GoogleFonts.inter(),
-                          ),
-                          backgroundColor: const Color(0xFFA50C22),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 5),
+                    const SizedBox(height: 10),
                     _buildActionRow(Icons.logout_outlined, "Logout", () {
                       _showLogoutDialog(context);
                     }),
@@ -319,16 +338,15 @@ class FacultyProfileScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                
+
                 // Clear shared preferences
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.clear();
-                
+
                 // Navigate to auth screen
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/',
-                  (Route<dynamic> route) => false,
-                );
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFA50C22),

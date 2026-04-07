@@ -29,25 +29,22 @@ class Announcement {
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      audience: json['batch'] ?? '',
+      audience: json['audience'] ?? '',
       priority: json['priority'] ?? '',
-      facultyName: json['faculty_id'] ?? 'Unknown', // Using faculty_id
-      timestamp: DateTime.parse(
-        json['created_at'] ??
-            DateTime.now().toIso8601String(), // Using created_at
-      ),
+      facultyName: json['faculty_name'] ?? 'Unknown',
+      timestamp: DateTime.parse(json['timestamp'] ?? DateTime.now().toIso8601String()),
     );
   }
 }
 
-class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+class AnnouncementsScreen extends StatefulWidget {
+  const AnnouncementsScreen({Key? key}) : super(key: key);
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   List<Announcement> _announcements = [];
   bool _isLoading = true;
   String _studentBatch = 'Loading...';
@@ -76,7 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final batch = prefs.getString('studentYear') ?? '';
-
+      
       if (batch.isEmpty) {
         setState(() {
           _isLoading = false;
@@ -85,7 +82,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
 
       print('📡 [API] Fetching announcements for batch: $batch');
-
+      
       final url = Uri.parse('${ApiService.baseUrl}/announcements?batch=$batch');
       final response = await http.get(url);
 
@@ -94,30 +91,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final List<Announcement> allAnnouncements = data
+        final List<Announcement> announcements = data
             .map((json) => Announcement.fromJson(json))
             .toList();
 
-        // Filter out announcements older than 3 days (72 hours)
-        final filteredAnnouncements = _filterRecentAnnouncements(
-          allAnnouncements,
-        );
-
         setState(() {
-          _announcements = filteredAnnouncements;
+          _announcements = announcements;
           _isLoading = false;
         });
 
-        print(
-          '📋 [ANNOUNCEMENTS] Loaded ${allAnnouncements.length} total announcements',
-        );
-        print(
-          '📋 [ANNOUNCEMENTS] Showing ${filteredAnnouncements.length} recent announcements',
-        );
-        for (var announcement in filteredAnnouncements) {
-          print(
-            '📋 [ANNOUNCEMENTS] - ${announcement.title} by ${announcement.facultyName}',
-          );
+        print('📋 [ANNOUNCEMENTS] Loaded ${announcements.length} announcements');
+        for (var announcement in announcements) {
+          print('📋 [ANNOUNCEMENTS] - ${announcement.title} by ${announcement.facultyName}');
         }
       } else {
         throw Exception('Failed to load announcements: ${response.statusCode}');
@@ -127,7 +112,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _isLoading = false;
       });
-
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -138,23 +123,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       );
     }
-  }
-
-  List<Announcement> _filterRecentAnnouncements(
-    List<Announcement> announcements,
-  ) {
-    final now = DateTime.now();
-    final cutoffTime = now.subtract(const Duration(hours: 72)); // 3 days ago
-
-    final recentAnnouncements = announcements.where((announcement) {
-      return announcement.timestamp.isAfter(cutoffTime);
-    }).toList();
-
-    print(
-      '🗑️ [ANNOUNCEMENTS] Filtered ${announcements.length - recentAnnouncements.length} old announcements (older than 3 days)',
-    );
-
-    return recentAnnouncements;
   }
 
   Future<void> _refreshAnnouncements() async {
@@ -183,16 +151,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F3F6),
       appBar: AppBar(
-        backgroundColor: const Color(
-          0xFFA50C22,
-        ), // Updated to app's primary color
-        foregroundColor: Colors.white,
-        elevation: 1, // Match app's elevation
+        backgroundColor: const Color(0xFFA50C22),
+        elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Announcements'),
+        title: Text(
+          'Announcements',
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -208,17 +180,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             )
           : _announcements.isEmpty
-          ? _buildEmptyState()
-          : RefreshIndicator(
-              onRefresh: _refreshAnnouncements,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _announcements.length,
-                itemBuilder: (context, index) {
-                  return _buildAnnouncementCard(_announcements[index]);
-                },
-              ),
-            ),
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: _refreshAnnouncements,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _announcements.length,
+                    itemBuilder: (context, index) {
+                      return _buildAnnouncementCard(_announcements[index]);
+                    },
+                  ),
+                ),
     );
   }
 
@@ -227,7 +199,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.announcement_outlined, size: 64, color: Colors.grey[400]),
+          Icon(
+            Icons.announcement_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
           const SizedBox(height: 16),
           Text(
             'No announcements available',
@@ -240,13 +216,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 8),
           Text(
             'Batch: $_studentBatch',
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[500]),
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: _refreshAnnouncements,
             icon: const Icon(Icons.refresh),
-            label: Text('Refresh', style: GoogleFonts.inter()),
+            label: Text(
+              'Refresh',
+              style: GoogleFonts.inter(),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFA50C22),
               foregroundColor: Colors.white,
@@ -291,10 +273,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: _getPriorityColor(announcement.priority),
                     borderRadius: BorderRadius.circular(6),
@@ -311,7 +290,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-
+            
             // Content
             Text(
               announcement.content,
@@ -322,11 +301,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
+            
             // Footer with faculty and timestamp
             Row(
               children: [
-                Icon(Icons.person_outline, size: 16, color: Colors.grey[500]),
+                Icon(
+                  Icons.person_outline,
+                  size: 16,
+                  color: Colors.grey[500],
+                ),
                 const SizedBox(width: 4),
                 Text(
                   announcement.facultyName,
@@ -346,7 +329,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-
+            
             // Audience badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -370,14 +353,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _formatTimestamp(DateTime timestamp) {
-    // Convert UTC to IST (UTC+5:30)
-    final istTimestamp = timestamp.toUtc().add(
-      const Duration(hours: 5, minutes: 30),
-    );
-    final now = DateTime.now().toUtc().add(
-      const Duration(hours: 5, minutes: 30),
-    );
-    final difference = now.difference(istTimestamp);
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
 
     if (difference.inMinutes < 60) {
       return '${difference.inMinutes} minutes ago';
@@ -386,7 +363,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } else if (difference.inDays < 7) {
       return '${difference.inDays} days ago';
     } else {
-      return '${istTimestamp.day}/${istTimestamp.month}/${istTimestamp.year}';
+      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
     }
   }
 }

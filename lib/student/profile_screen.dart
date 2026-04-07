@@ -2,10 +2,76 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class StudentProfileScreen extends StatelessWidget {
-  final Map<String, dynamic>? studentData;
+class StudentProfileScreen extends StatefulWidget {
+  const StudentProfileScreen({Key? key}) : super(key: key);
 
-  const StudentProfileScreen({Key? key, this.studentData}) : super(key: key);
+  @override
+  State<StudentProfileScreen> createState() => _StudentProfileScreenState();
+}
+
+class _StudentProfileScreenState extends State<StudentProfileScreen> {
+  Map<String, String>? _studentData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentData();
+  }
+
+  Future<void> _loadStudentData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Debug: Print all available keys in SharedPreferences
+      print('🔍 [PROFILE] All SharedPreferences keys: ${prefs.getKeys()}');
+
+      // Debug: Check each individual field before loading
+      final studentName = prefs.getString('studentName');
+      final studentEmail = prefs.getString('studentEmail');
+      final studentPhone = prefs.getString('studentPhone');
+      final studentAddress = prefs.getString('studentAddress');
+      final studentDepartment = prefs.getString('studentDepartment');
+      final studentYear = prefs.getString('studentYear');
+      final studentRollNumber = prefs.getString('studentRollNumber');
+      final studentId = prefs.getString('studentId');
+      final studentSgpa = prefs.getString('studentSgpa');
+      final studentLabBatch = prefs.getString('studentLabBatch');
+      final studentDateOfBirth = prefs.getString('studentDateOfBirth');
+
+      print('📋 [PROFILE] Raw data from SharedPreferences:');
+      print('📋 [PROFILE] studentName: $studentName');
+      print('📋 [PROFILE] studentEmail: $studentEmail');
+      print('📋 [PROFILE] studentPhone: $studentPhone');
+      print('📋 [PROFILE] studentAddress: $studentAddress');
+      print('📋 [PROFILE] studentDepartment: $studentDepartment');
+      print('📋 [PROFILE] studentYear: $studentYear');
+      print('📋 [PROFILE] studentRollNumber: $studentRollNumber');
+      print('📋 [PROFILE] studentId: $studentId');
+      print('📋 [PROFILE] studentSgpa: $studentSgpa');
+      print('📋 [PROFILE] studentLabBatch: $studentLabBatch');
+      print('📋 [PROFILE] studentDateOfBirth: $studentDateOfBirth');
+
+      setState(() {
+        _studentData = {
+          'name': studentName ?? 'Loading...',
+          'email': studentEmail ?? 'Loading...',
+          'phone': studentPhone ?? 'Loading...',
+          'address': studentAddress ?? 'Loading...',
+          'department': studentDepartment ?? 'Loading...',
+          'year': studentYear ?? 'Loading...',
+          'roll_number': studentRollNumber ?? 'Loading...',
+          'student_id': studentId ?? 'Loading...',
+          'sgpa': studentSgpa ?? 'Loading...',
+          'lab_batch': studentLabBatch ?? 'Loading...',
+          'date_of_birth': studentDateOfBirth ?? 'Loading...',
+        };
+      });
+
+      print('📋 [PROFILE] Final _studentData map: $_studentData');
+    } catch (e) {
+      print('❌ [PROFILE] Error loading student data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +107,7 @@ class StudentProfileScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    studentData?['name'] ?? "Prayag Upadhyaya",
+                    _studentData?['name'] ?? "Loading...",
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -49,8 +115,8 @@ class StudentProfileScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    (studentData?['email'] as String?)?.split('@')[0] ??
-                        "prayag.upadhyaya",
+                    (_studentData?['email'] as String?)?.split('@')[0] ??
+                        "Loading...",
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.8),
@@ -134,7 +200,7 @@ class StudentProfileScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            studentData?['name'] ?? "Prayag Upadhyaya",
+                            _studentData?['name'] ?? "Loading...",
                             style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -143,7 +209,7 @@ class StudentProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "${studentData?['email'] ?? "prayag.upadhyaya@somaiya.edu"} | ${studentData?['department'] ?? "Computer Engineering"}",
+                            "${_studentData?['email'] ?? "Loading..."} | ${_studentData?['department'] ?? "Loading..."}",
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: const Color(0xFF6B7280),
@@ -213,27 +279,27 @@ class StudentProfileScreen extends StatelessWidget {
                     _buildProfileInfoRow(
                       Icons.email_outlined,
                       "Email",
-                      studentData?['email'] ?? "prayag.upadhyaya@somaiya.edu",
+                      _studentData?['email'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.phone_outlined,
                       "Phone",
-                      studentData?['phone'] ?? "+91 98765 43210",
+                      _studentData?['phone'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.badge_outlined,
                       "Student ID",
-                      studentData?['studentId'] ?? "FCUG23762",
+                      _studentData?['student_id'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.calendar_today_outlined,
                       "Date of Birth",
-                      studentData?['dateOfBirth'] ?? "15/08/2003",
+                      _studentData?['date_of_birth'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.location_on_outlined,
                       "Address",
-                      studentData?['address'] ?? "Mumbai, Maharashtra",
+                      _studentData?['address'] ?? "Loading...",
                     ),
 
                     const SizedBox(height: 24),
@@ -251,27 +317,27 @@ class StudentProfileScreen extends StatelessWidget {
                     _buildProfileInfoRow(
                       Icons.school_outlined,
                       "Department",
-                      studentData?['department'] ?? "Computer Engineering",
+                      _studentData?['department'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.class_outlined,
                       "Year",
-                      studentData?['year'] ?? "Third Year",
+                      _studentData?['year'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.group_outlined,
-                      "Division",
-                      studentData?['division'] ?? "A",
+                      "Lab Batch",
+                      _studentData?['lab_batch'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.numbers_outlined,
                       "Roll Number",
-                      studentData?['rollNumber'] ?? "23",
+                      _studentData?['roll_number'] ?? "Loading...",
                     ),
                     _buildProfileInfoRow(
                       Icons.grade_outlined,
                       "SGPA",
-                      studentData?['sgpa'] ?? "8.5",
+                      _studentData?['sgpa'] ?? "Loading...",
                     ),
 
                     const SizedBox(height: 24),
@@ -279,18 +345,6 @@ class StudentProfileScreen extends StatelessWidget {
                     // Actions
                     Divider(color: const Color(0xFFE5E7EB)),
                     const SizedBox(height: 16),
-                    _buildActionRow(Icons.edit_outlined, "Edit Profile", () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Edit profile feature coming soon!",
-                            style: GoogleFonts.inter(),
-                          ),
-                          backgroundColor: const Color(0xFFA50C22),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 12),
                     _buildActionRow(Icons.logout_outlined, "Logout", () {
                       _showLogoutDialog(context);
                     }),

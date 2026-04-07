@@ -5,9 +5,7 @@ import 'active_sessions_screen.dart';
 import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  final Map<String, dynamic>? studentData;
-
-  const MainScreen({Key? key, this.studentData}) : super(key: key);
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -22,9 +20,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _screens = [
-      HomeScreen(studentData: widget.studentData),
+      const HomeScreen(),
       const ActiveSessionsScreen(),
-      StudentProfileScreen(studentData: widget.studentData),
+      const StudentProfileScreen(),
     ];
   }
 
