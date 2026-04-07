@@ -137,8 +137,11 @@ class _StudentBulkUploadScreenState extends State<StudentBulkUploadScreen> {
     final email = data['email']?.toString() ?? '';
     final phone = data['phone']?.toString() ?? '';
     final department = data['department']?.toString() ?? '';
-
-    // Duplicate student_id
+    // Lab batch - optional but if provided should not be empty
+    final labBatch = data['lab_batch']?.toString() ?? '';
+    if (labBatch.isNotEmpty && labBatch.trim().isEmpty) {
+      return 'Row $rowIndex: Lab batch is required';
+    }
     if (seenStudentIds.contains(studentId)) {
       return 'Row $rowIndex: Duplicate student_id "$studentId"';
     }
