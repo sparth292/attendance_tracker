@@ -1,0 +1,68 @@
+{
+  "subjects": [
+    {
+      "code": "023RC22",
+      "name": "Image Processing",
+      "faculty": "Manjiri Samant",
+      "type": "Theory",
+      "credits": 4,
+      "color": "0xFFE3F2FD",
+      "curriculum_pdf": "assets/pdfs/Image_Processing.pdf"
+    },
+    
+    {
+      "code": "023RC24",
+      "name": "Software Engineering",
+      "faculty": "Varsha Kinge",
+      "type": "Theory",
+      "credits": 4,
+      "color": "0xFFE8F5E8",
+      "curriculum_pdf": "assets/pdfs/Software Engineering.pdf"
+    },
+    {
+      "code": "023RC25",
+      "name": "Cloud Computing Lab",
+      "faculty": "Nilesh Kitke",
+      "type": "LAB",
+      "credits": 4,
+      "color": "0xFFFFF3E0",
+      "curriculum_pdf": "assets/pdfs/Image_Processing.pdf"
+    },
+    {
+      "code": "023RC26",
+      "name": "LAN Lab",
+      "faculty": "Megha Kapse",
+      "type": "LAB",
+      "credits": 2,
+      "color": "0xFFFCE4EC",
+      "curriculum_pdf": "assets/pdfs/Image_Processing.pdf"
+    },
+    {
+      "code": "023RC27",
+      "name": "SE Lab",
+      "faculty": "Varsha Kinge",
+      "type": "Lab",
+      "credits": 2,
+      "color": "0xFFE0F2F1",
+      "curriculum_pdf": "assets/pdfs/SE_LAB.pdf"
+    },
+    {
+      "code": "023RC28",
+      "name": "LAN",
+      "faculty": "Nilesh Kitke",
+      "type": "Theory",
+      "credits": 4,
+      "color": "0xFFF1F8E9",
+      "curriculum_pdf": "assets/pdfs/Image_Processing.pdf"
+    },
+    {
+      "code": "023RC29",
+      "name": "Database Management Systems",
+      "faculty": "S. S. Patil",
+      "type": "Theory",
+      "credits": 4,
+      "color": "0xFFE8EAF6",
+      "curriculum_pdf": "assets/pdfs/Image_Processing.pdf"
+    }
+  ]
+}
