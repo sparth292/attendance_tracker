@@ -24,6 +24,7 @@ class _RegisterStudentScreenState extends State<RegisterStudentScreen> {
   final _yearController = TextEditingController();
   final _rollNumberController = TextEditingController();
   final _sgpaController = TextEditingController();
+  final _labBatchController = TextEditingController();
   
   bool _isLoading = false;
   DateTime? _selectedDate;
@@ -41,6 +42,7 @@ class _RegisterStudentScreenState extends State<RegisterStudentScreen> {
     _yearController.dispose();
     _rollNumberController.dispose();
     _sgpaController.dispose();
+    _labBatchController.dispose();
     super.dispose();
   }
 
@@ -98,6 +100,7 @@ class _RegisterStudentScreenState extends State<RegisterStudentScreen> {
     _yearController.clear();
     _rollNumberController.clear();
     _sgpaController.clear();
+    _labBatchController.clear();
     _selectedDate = null;
   }
   @override
@@ -384,6 +387,16 @@ class _RegisterStudentScreenState extends State<RegisterStudentScreen> {
                       icon: Icons.grade,
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                     ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Lab Batch
+                    _buildTextField(
+                      controller: _labBatchController,
+                      label: 'Lab Batch',
+                      hintText: 'Enter lab batch',
+                      icon: Icons.science,
+                    ),
                   ],
                 ),
               ),
@@ -464,6 +477,7 @@ class _RegisterStudentScreenState extends State<RegisterStudentScreen> {
         'year': _yearController.text.trim().isEmpty ? null : _yearController.text.trim(),
         'roll_number': _rollNumberController.text.trim().isEmpty ? null : int.tryParse(_rollNumberController.text.trim()),
         'sgpa': _sgpaController.text.trim().isEmpty ? null : double.tryParse(_sgpaController.text.trim()),
+        'lab_batch': _labBatchController.text.trim().isEmpty ? null : _labBatchController.text.trim(),
       };
       
       print('Sending data: $requestData');
