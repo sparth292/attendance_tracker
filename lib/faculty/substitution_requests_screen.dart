@@ -33,41 +33,46 @@ class _SubstitutionRequestsScreenState
   Future<void> _loadSubstitutionRequests() async {
     print('🔔 [SUBSTITUTION] Loading substitution requests...');
 
-    try {
-      // This would be your API to get substitution requests
-      // For now, we'll simulate with mock data
-      await Future.delayed(const Duration(seconds: 1));
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-      setState(() {
-        _substitutionRequests = [
-          {
-            'id': '1',
-            'original_faculty': 'FAC002',
-            'original_faculty_name': 'Varsha Kinge',
-            'course_name': 'Software Engineering LAB',
-            'date': '2026-04-06',
-            'time': '15:30-17:30',
-            'room': '218',
-            'status': 'pending',
-            'substitution_id': '1',
-          },
-          {
-            'id': '2',
-            'original_faculty': 'FAC001',
-            'original_faculty_name': 'John Doe',
-            'course_name': 'Data Structures',
-            'date': '2026-04-06',
-            'time': '10:30-11:30',
-            'room': '101',
-            'status': 'accepted',
-            'substitution_id': '2',
-          },
-        ];
-        _isLoading = false;
-        print(
-          '🔔 [SUBSTITUTION] Loaded ${_substitutionRequests.length} substitution requests',
+    try {
+      // Get current faculty ID
+      final prefs = await SharedPreferences.getInstance();
+      final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+
+      final response = await http.get(
+        Uri.parse(
+          'http://13.235.16.3:5000/substitution/requests?faculty_id=$facultyId',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('🔔 [SUBSTITUTION] API Response Status: ${response.statusCode}');
+      print('🔔 [SUBSTITUTION] API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<Map<String, dynamic>> requests = [];
+
+        if (data['pending_requests'] != null) {
+          requests = List<Map<String, dynamic>>.from(data['pending_requests']);
+        }
+
+        setState(() {
+          _substitutionRequests = requests;
+          _isLoading = false;
+          print(
+            '🔔 [SUBSTITUTION] Loaded ${_substitutionRequests.length} substitution requests',
+          );
+        });
+      } else {
+        throw Exception(
+          'Failed to load substitution requests: ${response.statusCode}',
         );
-      });
+      }
     } catch (e) {
       print('❌ [SUBSTITUTION] Error loading substitution requests: $e');
       setState(() {
@@ -80,6 +85,25 @@ class _SubstitutionRequestsScreenState
   Future<void> _respondToRequest(String substitutionId, String action) async {
     print(
       '🔔 [SUBSTITUTION] Responding to request: $substitutionId, action: $action',
+    );
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA50C22)),
+              ),
+              SizedBox(width: 16),
+              Text('Processing...'),
+            ],
+          ),
+        );
+      },
     );
 
     try {
@@ -96,6 +120,9 @@ class _SubstitutionRequestsScreenState
           'action': action.toUpperCase(),
         }),
       );
+
+      // Close loading dialog
+      Navigator.of(context).pop();
 
       print('🔔 [SUBSTITUTION] Response status: ${response.statusCode}');
       print('🔔 [SUBSTITUTION] Response body: ${response.body}');
@@ -115,8 +142,15 @@ class _SubstitutionRequestsScreenState
           ),
         );
 
-        // Refresh the list
-        _loadSubstitutionRequests();
+        // Refresh the list and trigger home screen refresh
+        setState(() {
+          _loadSubstitutionRequests();
+        });
+
+        // Navigate back to home screen to refresh the lecture list
+        Navigator.of(
+          context,
+        ).pop(true); // Return true to indicate refresh needed
       } else {
         print(
           '❌ [SUBSTITUTION] Error responding to request: ${response.statusCode}',
@@ -132,6 +166,11 @@ class _SubstitutionRequestsScreenState
         );
       }
     } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
       print('❌ [SUBSTITUTION] Error responding to request: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -201,10 +240,14 @@ class _SubstitutionRequestsScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                  Icon(
+                    Icons.notifications_none_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    'No substitution requests',
+                    'No notifications currently',
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -353,7 +396,7 @@ class _SubstitutionRequestsScreenState
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                request['time'] ?? 'Unknown Time',
+                                '${request['start_time'] ?? 'Unknown'} - ${request['end_time'] ?? 'Unknown'}',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   color: Colors.grey[600],
@@ -371,7 +414,7 @@ class _SubstitutionRequestsScreenState
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Room ${request['room'] ?? 'Unknown'}',
+                                'Room ${request['room_no'] ?? 'Unknown'}',
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   color: Colors.grey[600],
