@@ -1,4 +1,3 @@
-import 'package:attendance_tracker/student/subjects_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
@@ -13,6 +12,7 @@ import '../upcoming_events_screen.dart';
 import 'uploaded_materials_screen.dart';
 import '../services/api_service.dart';
 import '../services/announcement_service.dart';
+import '../services/substitution_notification_service.dart';
 import 'subjects_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -35,6 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadStudentData();
     _loadAttendanceData();
     _loadCurrentLecture();
+
+    // Initialize substitution notification service
+    final substitutionNotificationService = SubstitutionNotificationService();
+    substitutionNotificationService.initialize();
 
     // Update current lecture every 30 seconds
     _lectureTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -252,6 +256,20 @@ class _HomeScreenState extends State<HomeScreen> {
       print('🔔 [HOME] Announcement check completed during refresh');
     } catch (e) {
       print('❌ [HOME] Error checking announcements during refresh: $e');
+    }
+
+    // Trigger substitution notification check for new notifications
+    try {
+      final substitutionNotificationService = SubstitutionNotificationService();
+      await substitutionNotificationService
+          .checkAndNotifyNewSubstitutionNotifications();
+      print(
+        '🔔 [HOME] Substitution notification check completed during refresh',
+      );
+    } catch (e) {
+      print(
+        '❌ [HOME] Error checking substitution notifications during refresh: $e',
+      );
     }
 
     print('✅ [HOME] Home data refresh completed');
@@ -922,7 +940,6 @@ class _QuickAccessGrid extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const UploadedMaterialsScreen()),
         ),
       ),
-      
       _QuickItem(
         icon: Icons.menu_book_outlined,
         label: "Subjects",

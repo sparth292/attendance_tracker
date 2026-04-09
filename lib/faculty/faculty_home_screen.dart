@@ -128,8 +128,11 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
   Map<String, String>? _facultyData; // Store real faculty data from API
   Map<String, dynamic>? _attendanceData; // Store attendance data
   Map<String, dynamic>? _currentLecture; // Store current lecture data
+  List<Map<String, dynamic>> _acceptedLectures =
+      []; // Store accepted substitution lectures
   Timer? _lectureTimer; // Timer to update current lecture
   bool _isLoadingLectures = true; // Loading state for lectures
+  bool _isAssigned = false; // Track if current lecture is assigned/substituted
 
   late List<Widget> _screens;
 
@@ -139,6 +142,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     _loadFacultyData(); // Load real faculty data
     _checkTodayAttendance();
     _loadTodayLectures(); // Load today's lectures
+    _loadAssignmentState(); // Load assignment state from preferences
 
     // Update current lecture every minute
     _lectureTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -152,6 +156,134 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
 
     // Initialize screens list
     _updateScreens();
+  }
+
+  Future<void> _refreshHomeData() async {
+    print('🔄 [FACULTY_HOME] Refreshing home data...');
+
+    // Refresh faculty data
+    await _loadFacultyData();
+
+    // Refresh attendance data
+    await _checkTodayAttendance();
+
+    // Refresh today's lectures
+    await _loadTodayLectures();
+
+    // Refresh accepted lectures
+    await _loadAcceptedLectures();
+
+    print('✅ [FACULTY_HOME] Home data refresh completed');
+  }
+
+  // Method to refresh data when returning from substitution requests
+  void refreshFromSubstitutionRequests() async {
+    print('🔄 [FACULTY_HOME] Refreshing after substitution response...');
+
+    // Check if we have accepted lectures and mark as assigned
+    await _loadAcceptedLectures();
+
+    // If we have accepted lectures, mark current lecture as assigned
+    if (_acceptedLectures.isNotEmpty) {
+      await _saveAssignmentState(true);
+    }
+
+    _refreshHomeData();
+  }
+
+  // Load assignment state from SharedPreferences
+  Future<void> _loadAssignmentState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+      final today = DateTime.now().toString().split(
+        ' ',
+      )[0]; // YYYY-MM-DD format
+
+      // Get assignment state for today
+      final assignedDate = prefs.getString('assigned_date_$facultyId');
+      final isAssigned = prefs.getBool('is_assigned_$facultyId') ?? false;
+
+      // Reset assignment state if it's a new day
+      if (assignedDate != today) {
+        setState(() {
+          _isAssigned = false;
+        });
+        // Clear old assignment state
+        await prefs.remove('assigned_date_$facultyId');
+        await prefs.remove('is_assigned_$facultyId');
+        print('🔄 [ASSIGNMENT] Reset assignment state for new day');
+      } else {
+        setState(() {
+          _isAssigned = isAssigned;
+        });
+        print(
+          '✅ [ASSIGNMENT] Loaded assignment state: $_isAssigned for date: $assignedDate',
+        );
+      }
+    } catch (e) {
+      print('❌ [ASSIGNMENT] Error loading assignment state: $e');
+    }
+  }
+
+  // Save assignment state to SharedPreferences
+  Future<void> _saveAssignmentState(bool assigned) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+      final today = DateTime.now().toString().split(
+        ' ',
+      )[0]; // YYYY-MM-DD format
+
+      await prefs.setBool('is_assigned_$facultyId', assigned);
+      await prefs.setString('assigned_date_$facultyId', today);
+
+      setState(() {
+        _isAssigned = assigned;
+      });
+
+      print(
+        '✅ [ASSIGNMENT] Saved assignment state: $assigned for date: $today',
+      );
+    } catch (e) {
+      print('❌ [ASSIGNMENT] Error saving assignment state: $e');
+    }
+  }
+
+  // Load accepted substitution lectures
+  Future<void> _loadAcceptedLectures() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final facultyId = prefs.getString('facultyId') ?? 'FAC001';
+
+      final response = await http.get(
+        Uri.parse(
+          'http://13.235.16.3:5000/substitution/accepted?faculty_id=$facultyId',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<Map<String, dynamic>> acceptedLectures = [];
+
+        if (data['accepted_lectures'] != null) {
+          acceptedLectures = List<Map<String, dynamic>>.from(
+            data['accepted_lectures'],
+          );
+        }
+
+        setState(() {
+          _acceptedLectures = acceptedLectures;
+        });
+
+        print(
+          '✅ [SUBSTITUTION] Loaded ${_acceptedLectures.length} accepted lectures',
+        );
+      }
+    } catch (e) {
+      print('❌ [SUBSTITUTION] Error loading accepted lectures: $e');
+    }
   }
 
   void _listenToFCMMessages() {
@@ -189,6 +321,15 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
               const SizedBox(height: 12),
               _buildLectureCard(),
               const SizedBox(height: 24),
+
+              // Accepted Substitution Lectures Section
+              if (_acceptedLectures.isNotEmpty) ...[
+                _sectionLabel("Assigned Lectures"),
+                const SizedBox(height: 12),
+                _buildAcceptedLecturesSection(),
+                const SizedBox(height: 24),
+              ],
+
               _sectionLabel("Quick Actions"),
               const SizedBox(height: 12),
               Row(
@@ -285,8 +426,9 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         final now = DateTime.now();
         final currentTime = _formatTimeForComparison(now);
 
-        // Find next lecture only (skip current lecture)
+        // Find next available lecture (skip current if assigned/taken)
         Map<String, dynamic>? nextLecture;
+        Map<String, dynamic>? currentLecture;
 
         // Sort lectures by start time for proper next lecture detection
         final sortedLectures = List<Map<String, dynamic>>.from(lectures);
@@ -295,6 +437,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
               (a['start_time'] as String).compareTo(b['start_time'] as String),
         );
 
+        // First, identify the current lecture and next lecture based on time
         for (final lecture in sortedLectures) {
           final startTime = lecture['start_time'];
           final endTime = lecture['end_time'];
@@ -307,17 +450,37 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
           // Convert times to total minutes for accurate comparison
           final currentMinutes = _timeToMinutes(currentTime);
           final startMinutes = _timeToMinutes(startTime);
+          final endMinutes = _timeToMinutes(endTime);
 
           print('📚 [LECTURE]   Current minutes: $currentMinutes');
           print('📚 [LECTURE]   Start minutes: $startMinutes');
-          print('📚 [LECTURE]   Is before: ${currentMinutes < startMinutes}');
+          print('📚 [LECTURE]   End minutes: $endMinutes');
 
-          // Only look for next lecture (skip current)
-          if (currentMinutes < startMinutes && nextLecture == null) {
+          // Check if this is the current lecture (in progress)
+          if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
+            currentLecture = lecture as Map<String, dynamic>;
+            print('📚 [LECTURE] → Found current lecture: $courseName');
+          }
+          // Check if this is the next lecture (hasn't started yet)
+          else if (currentMinutes < startMinutes && nextLecture == null) {
             nextLecture = lecture as Map<String, dynamic>;
             print('📚 [LECTURE] → Found next lecture: $courseName');
             break; // Found the next lecture, no need to check further
           }
+        }
+
+        // If current lecture exists and is assigned/taken, show the next lecture
+        if (currentLecture != null && _isAssigned) {
+          print(
+            '📚 [LECTURE] Current lecture is assigned/taken, showing next lecture',
+          );
+          // nextLecture is already set from the loop above
+        } else if (currentLecture != null && !_isAssigned) {
+          print('📚 [LECTURE] Current lecture is available, showing current');
+          nextLecture = currentLecture; // Show current lecture if not assigned
+        } else {
+          print('📚 [LECTURE] No current lecture, showing next available');
+          // nextLecture is already set from the loop above
         }
 
         setState(() {
@@ -726,9 +889,11 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      _assignLecture();
-                    },
+                    onPressed: _isAssigned
+                        ? null
+                        : () {
+                            _assignLecture();
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFA50C22),
                       foregroundColor: Colors.white,
@@ -739,7 +904,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
                       ),
                     ),
                     child: Text(
-                      "Assign this lec",
+                      _isAssigned ? "Already Assigned" : "Assign this lec",
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -750,9 +915,11 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
-                      _showActionDialog("Take lecture");
-                    },
+                    onPressed: _isAssigned
+                        ? null
+                        : () {
+                            _showActionDialog("Take lecture");
+                          },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFA50C22),
                       side: const BorderSide(color: Color(0xFFA50C22)),
@@ -762,7 +929,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
                       ),
                     ),
                     child: Text(
-                      "Take lecture",
+                      _isAssigned ? "Already Taken" : "Take lecture",
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1052,6 +1219,25 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
       return;
     }
 
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA50C22)),
+              ),
+              SizedBox(width: 16),
+              Text('Creating substitution request...'),
+            ],
+          ),
+        );
+      },
+    );
+
     final lecture = _currentLecture!;
     final courseName = lecture['course_name'] ?? '';
     final room = lecture['room_number'] ?? '';
@@ -1088,6 +1274,9 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         }),
       );
 
+      // Close loading dialog
+      Navigator.of(context).pop();
+
       print('📡 [SUBSTITUTION] API Response Status: ${response.statusCode}');
       print('📡 [SUBSTITUTION] API Response Body: ${response.body}');
 
@@ -1105,6 +1294,14 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
             backgroundColor: const Color(0xFFA50C22),
           ),
         );
+
+        // Mark lecture as assigned and save state
+        await _saveAssignmentState(true);
+
+        // Refresh UI after successful request
+        setState(() {
+          _loadTodayLectures(); // Refresh lectures to show next one
+        });
       } else {
         print('❌ [SUBSTITUTION] API error: ${response.statusCode}');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1118,6 +1315,11 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         );
       }
     } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
       print('❌ [SUBSTITUTION] Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1157,17 +1359,32 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      "$action action completed",
-                      style: GoogleFonts.inter(),
+
+                // If taking a lecture, mark as assigned
+                if (action == "Take lecture") {
+                  await _saveAssignmentState(true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "Lecture taken successfully",
+                        style: GoogleFonts.inter(),
+                      ),
+                      backgroundColor: Colors.green,
                     ),
-                    backgroundColor: const Color(0xFFA50C22),
-                  ),
-                );
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "$action action completed",
+                        style: GoogleFonts.inter(),
+                      ),
+                      backgroundColor: const Color(0xFFA50C22),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFA50C22),
@@ -1252,6 +1469,109 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Build accepted lectures section
+  Widget _buildAcceptedLecturesSection() {
+    return Column(
+      children: _acceptedLectures.map((lecture) {
+        final courseName = lecture['course_name'] ?? 'Unknown Course';
+        final room = lecture['room_no'] ?? 'N/A'; // Updated field name
+        final startTime = _formatTimeFromString(lecture['start_time']);
+        final endTime = _formatTimeFromString(lecture['end_time']);
+        final originalFaculty =
+            lecture['original_faculty_name'] ?? 'Unknown Faculty';
+        final substituteFaculty =
+            lecture['substitute_faculty_name'] ??
+            'You'; // Who accepted this lecture
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with substitution badge
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            courseName,
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF111827),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'ASSIGNED',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _lectureInfoRow(
+                  Icons.access_time_rounded,
+                  "Time",
+                  "$startTime to $endTime",
+                ),
+                const Divider(
+                  height: 18,
+                  thickness: 1,
+                  color: Color(0xFFF3F4F6),
+                ),
+                _lectureInfoRow(Icons.meeting_room_outlined, "Room", room),
+                const Divider(
+                  height: 18,
+                  thickness: 1,
+                  color: Color(0xFFF3F4F6),
+                ),
+                _lectureInfoRow(Icons.person_outline, "From", originalFaculty),
+                const Divider(
+                  height: 18,
+                  thickness: 1,
+                  color: Color(0xFFF3F4F6),
+                ),
+                _lectureInfoRow(Icons.person, "Assigned to", substituteFaculty),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -1362,14 +1682,19 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
                   const SizedBox(width: 12),
                   IconButton(
                     icon: const Icon(Icons.notifications, color: Colors.white),
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
                               const SubstitutionRequestsScreen(),
                         ),
                       );
+
+                      // Refresh home screen data when returning from substitution requests
+                      if (result != null && result == true) {
+                        refreshFromSubstitutionRequests();
+                      }
                     },
                   ),
                   const SizedBox(width: 8),
@@ -1385,7 +1710,10 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
           ),
         ),
       ),
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: RefreshIndicator(
+        onRefresh: _refreshHomeData,
+        child: IndexedStack(index: _currentIndex, children: _screens),
+      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
