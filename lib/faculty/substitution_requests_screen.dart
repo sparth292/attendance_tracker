@@ -84,7 +84,7 @@ class _SubstitutionRequestsScreenState
 
   Future<void> _respondToRequest(String substitutionId, String action) async {
     print(
-      '🔔 [SUBSTITUTION] Responding to request: $substitutionId, action: $action',
+      '?? [SUBSTITUTION] Responding to request: $substitutionId, action: $action',
     );
 
     // Show loading dialog
@@ -111,14 +111,26 @@ class _SubstitutionRequestsScreenState
       final prefs = await SharedPreferences.getInstance();
       final facultyId = prefs.getString('facultyId') ?? 'FAC001';
 
+      // Validate substitutionId before parsing
+      if (substitutionId.isEmpty) {
+        print('ERROR: substitutionId is empty');
+        Navigator.of(context).pop();
+        return;
+      }
+
+      final requestBody = {
+        'substitution_id': int.tryParse(substitutionId) ?? 0,
+        'faculty_id': facultyId,
+        'action': action.toUpperCase(),
+      };
+      
+      print('?? [SUBSTITUTION] API Request URL: http://13.235.16.3:5000/substitution/respond');
+      print('?? [SUBSTITUTION] API Request Body: ${jsonEncode(requestBody)}');
+
       final response = await http.post(
         Uri.parse('http://13.235.16.3:5000/substitution/respond'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'substitution_id': int.parse(substitutionId),
-          'faculty_id': facultyId,
-          'action': action.toUpperCase(),
-        }),
+        body: jsonEncode(requestBody),
       );
 
       // Close loading dialog
@@ -274,7 +286,7 @@ class _SubstitutionRequestsScreenState
                 itemBuilder: (context, index) {
                   final request = _substitutionRequests[index];
                   final isHighlighted =
-                      widget.substitutionId == request['substitution_id'];
+                      widget.substitutionId != null && widget.substitutionId == request['id'];
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -428,10 +440,15 @@ class _SubstitutionRequestsScreenState
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => _respondToRequest(
-                                      request['substitution_id'].toString(),
-                                      'accept',
-                                    ),
+                                    onPressed: () {
+                                      final subId = request['id'] ?? request['substitution_id'];
+                                      if (subId != null) {
+                                        _respondToRequest(
+                                          subId.toString(),
+                                          'accept',
+                                        );
+                                      }
+                                    },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white,
@@ -451,10 +468,15 @@ class _SubstitutionRequestsScreenState
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: OutlinedButton(
-                                    onPressed: () => _respondToRequest(
-                                      request['substitution_id'].toString(),
-                                      'reject',
-                                    ),
+                                    onPressed: () {
+                                      final subId = request['id'] ?? request['substitution_id'];
+                                      if (subId != null) {
+                                        _respondToRequest(
+                                          subId.toString(),
+                                          'reject',
+                                        );
+                                      }
+                                    },
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.red,
                                       side: const BorderSide(color: Colors.red),
