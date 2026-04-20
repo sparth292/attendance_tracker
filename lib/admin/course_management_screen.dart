@@ -46,8 +46,10 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
   Future<void> _loadCourses() async {
     print('Loading courses...');
     try {
+      // Add timestamp to prevent caching
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final response = await http.get(
-        Uri.parse('http://13.235.16.3:5001/courses/'),
+        Uri.parse('http://13.235.16.3:5001/courses/?t=$timestamp'),
       );
 
       print('Load courses response status: ${response.statusCode}');
@@ -82,9 +84,9 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
     setState(() {
       _filteredCourses = _courses.where((course) {
         return course[0].toString().toLowerCase().contains(query) ||
-               course[1].toString().toLowerCase().contains(query) ||
-               course[2].toString().toLowerCase().contains(query) ||
-               course[3].toString().toLowerCase().contains(query);
+            course[1].toString().toLowerCase().contains(query) ||
+            course[2].toString().toLowerCase().contains(query) ||
+            course[3].toString().toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -113,7 +115,10 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add New Course', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Add New Course',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -161,9 +166,7 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'Course Type',
-                ),
+                decoration: const InputDecoration(labelText: 'Course Type'),
                 items: const [
                   DropdownMenuItem(value: 'THEORY', child: Text('Theory')),
                   DropdownMenuItem(value: 'LAB', child: Text('Lab')),
@@ -232,7 +235,9 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
         await Future.delayed(const Duration(milliseconds: 500));
         _loadCourses();
       } else {
-        _showErrorSnackBar('Failed to add course. Status: ${response.statusCode}');
+        _showErrorSnackBar(
+          'Failed to add course. Status: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error creating course: $e');
@@ -250,8 +255,15 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
   }
 
   Future<void> _deleteCourse(String courseCode) async {
-    print('Attempting to delete course: $courseCode');
-    
+    print(' [DELETE] Attempting to delete course: $courseCode');
+    print(' [DELETE] Course code type: ${courseCode.runtimeType}');
+
+    if (courseCode.isEmpty || courseCode == 'Unknown') {
+      print(' [DELETE] Invalid course code: $courseCode');
+      _showErrorSnackBar('Invalid course code');
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -274,41 +286,109 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
     );
 
     if (confirmed == true) {
+      print(' [DELETE] User confirmed deletion');
       try {
-        final deleteUrl = 'http://13.235.16.3:5001/courses/$courseCode';
-        print('Delete URL: $deleteUrl');
-        
-        final response = await http.delete(
-          Uri.parse(deleteUrl),
-        );
+        // Try multiple URL formats in case API expects different formats
+        final deleteUrls = [
+          'http://13.235.16.3:5001/courses/$courseCode',
+          'http://13.235.16.3:5001/courses/code/$courseCode',
+          'http://13.235.16.3:5001/courses/delete/$courseCode',
+        ];
 
-        print('Delete response status: ${response.statusCode}');
-        print('Delete response body: ${response.body}');
+        for (int i = 0; i < deleteUrls.length; i++) {
+          final deleteUrl = deleteUrls[i];
+          print(' [DELETE] Trying URL $i: $deleteUrl');
 
-        if (response.statusCode == 200 || response.statusCode == 204) {
-          _showSuccessSnackBar('Course deleted successfully!');
-          _loadCourses();
-        } else {
-          _showErrorSnackBar('Failed to delete course. Status: ${response.statusCode}');
+          final response = await http
+              .delete(
+                Uri.parse(deleteUrl),
+                headers: {'Content-Type': 'application/json'},
+              )
+              .timeout(const Duration(seconds: 10));
+
+          print(' [DELETE] Response status: ${response.statusCode}');
+          print(' [DELETE] Response body: ${response.body}');
+
+          if (response.statusCode == 200 || response.statusCode == 204) {
+            print(' [DELETE] Course deleted successfully!');
+            _showSuccessSnackBar('Course deleted successfully!');
+
+            // Add delay to ensure backend operation completes
+            await Future.delayed(const Duration(milliseconds: 500));
+
+            // Force refresh with cache busting
+            setState(() {
+              _courses = [];
+              _filteredCourses = [];
+              _isLoading = true;
+            });
+
+            // Reload courses after clearing cache
+            await _loadCourses();
+
+            // Additional delay to ensure UI updates
+            await Future.delayed(const Duration(milliseconds: 300));
+
+            return; // Success, exit loop
+          } else if (response.statusCode == 404) {
+            print(' [DELETE] Course not found (404)');
+            _showErrorSnackBar('Course not found');
+            return; // Not found, no point trying other URLs
+          } else if (i == deleteUrls.length - 1) {
+            // Last URL tried and still failed
+            print(
+              ' [DELETE] All URLs failed. Last error: ${response.statusCode}',
+            );
+            _showErrorSnackBar(
+              'Failed to delete course. Status: ${response.statusCode}',
+            );
+          }
         }
+      } on TimeoutException catch (e) {
+        print(' [DELETE] Timeout error: $e');
+        _showErrorSnackBar('Request timeout. Please try again.');
       } catch (e) {
-        print('Delete error: $e');
+        print(' [DELETE] Network error: $e');
         _showErrorSnackBar('Network error: $e');
       }
     }
   }
 
   Widget _buildCourseCard(dynamic course) {
-    final courseCode = course[0].toString();
-    final courseName = course[1].toString();
-    final department = course[2].toString();
-    final batch = course[3].toString();
-    final credits = course[4].toString();
-    
+    // Handle both object and array-based course data
+    String courseCode, courseName, department, batch, credits;
+
+    if (course is Map<String, dynamic>) {
+      // Object-based data from API
+      courseCode =
+          course['course_code']?.toString() ?? course['code']?.toString() ?? '';
+      courseName =
+          course['course_name']?.toString() ?? course['name']?.toString() ?? '';
+      department = course['department']?.toString() ?? '';
+      batch = course['batch']?.toString() ?? '';
+      credits = course['credits']?.toString() ?? '';
+    } else if (course is List) {
+      // Array-based data (fallback)
+      courseCode = course[0]?.toString() ?? '';
+      courseName = course[1]?.toString() ?? '';
+      department = course[2]?.toString() ?? '';
+      batch = course[3]?.toString() ?? '';
+      credits = course[4]?.toString() ?? '';
+    } else {
+      // Unknown format
+      courseCode = course.toString();
+      courseName = 'Unknown';
+      department = '';
+      batch = '';
+      credits = '';
+    }
+
     // Check if course code or name contains "LAB"
-    bool isLab = courseCode.toUpperCase().contains('LAB') || courseName.toUpperCase().contains('LAB');
+    bool isLab =
+        courseCode.toUpperCase().contains('LAB') ||
+        courseName.toUpperCase().contains('LAB');
     String courseType = isLab ? 'LAB' : 'THEORY';
-    
+
     return Card(
       elevation: 3,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -349,9 +429,14 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: courseType == 'LAB' ? const Color(0xFF3B82F6) : const Color(0xFF10B981),
+                    color: courseType == 'LAB'
+                        ? const Color(0xFF3B82F6)
+                        : const Color(0xFF10B981),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -364,7 +449,11 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 20),
+                  icon: const Icon(
+                    Icons.delete,
+                    color: Color(0xFFEF4444),
+                    size: 20,
+                  ),
                   onPressed: () => _deleteCourse(courseCode),
                 ),
               ],
@@ -417,7 +506,10 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
         backgroundColor: const Color(0xFFA50C22),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -428,7 +520,7 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        ),
+      ),
       body: Column(
         children: [
           // Search Bar
@@ -437,7 +529,8 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search courses by code, name, department, or batch...',
+                hintText:
+                    'Search courses by code, name, department, or batch...',
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -449,39 +542,46 @@ class _CourseManagementScreenState extends State<CourseManagementScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
-          
+
           // Course List
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredCourses.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.school, size: 64, color: Color(0xFF9CA3AF)),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No courses found',
-                              style: GoogleFonts.inter(
-                                fontSize: 18,
-                                color: const Color(0xFF6B7280),
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.school,
+                          size: 64,
+                          color: Color(0xFF9CA3AF),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        itemCount: _filteredCourses.length,
-                        itemBuilder: (context, index) {
-                          return _buildCourseCard(_filteredCourses[index]);
-                        },
-                      ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No courses found',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    itemCount: _filteredCourses.length,
+                    itemBuilder: (context, index) {
+                      return _buildCourseCard(_filteredCourses[index]);
+                    },
+                  ),
           ),
         ],
       ),
