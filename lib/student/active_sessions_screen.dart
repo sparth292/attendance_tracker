@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wifi_scan/wifi_scan.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
 
 class ActiveSessionsScreen extends StatefulWidget {
@@ -16,11 +19,103 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
   List<Map<String, dynamic>> activeSessions = [];
   bool isLoading = true;
   String? errorMessage;
+  bool isInRangeOfCollege = false;
+  bool isScanningWiFi = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchActiveSessions();
+    _checkWiFiRangeAndFetchSessions();
+  }
+
+  Future<void> _checkWiFiRangeAndFetchSessions() async {
+    setState(() {
+      isScanningWiFi = true;
+      isLoading = true;
+    });
+
+    try {
+      // Check and request location permission
+      PermissionStatus permission = await Permission.location.status;
+      if (!permission.isGranted) {
+        permission = await Permission.location.request();
+        if (!permission.isGranted) {
+          setState(() {
+            errorMessage = 'Location permission is required for WiFi scanning.';
+            isLoading = false;
+            isScanningWiFi = false;
+          });
+          return;
+        }
+      }
+
+      // Check if location services are enabled
+      bool isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isLocationEnabled) {
+        setState(() {
+          errorMessage =
+              'Location services are disabled. Please enable location services to scan for WiFi networks.';
+          isLoading = false;
+          isScanningWiFi = false;
+        });
+        return;
+      }
+
+      // Check if WiFi scanning is supported
+      final canScan = await WiFiScan.instance.canStartScan();
+      if (canScan != CanStartScan.yes) {
+        String errorMsg = 'Cannot start WiFi scan: ';
+        if (canScan == CanStartScan.noLocationPermissionDenied) {
+          errorMsg +=
+              'Location permission denied. Please enable it in app settings.';
+        } else if (canScan == CanStartScan.noLocationServiceDisabled) {
+          errorMsg +=
+              'Location services are disabled. Please enable them in device settings.';
+        } else {
+          errorMsg += canScan.toString();
+        }
+        setState(() {
+          errorMessage = errorMsg;
+          isLoading = false;
+          isScanningWiFi = false;
+        });
+        return;
+      }
+
+      // Start scan and get results
+      await WiFiScan.instance.startScan();
+      final results = await WiFiScan.instance.getScannedResults();
+
+      const String targetSSID = 'SOMAIYA-AP';
+      bool foundTargetNetwork = results.any((ap) => ap.ssid == targetSSID);
+
+      setState(() {
+        isInRangeOfCollege = foundTargetNetwork;
+        isScanningWiFi = false;
+      });
+
+      if (foundTargetNetwork) {
+        print(
+          '🎯 Target network "$targetSSID" detected! Fetching active sessions...',
+        );
+        await _fetchActiveSessions();
+      } else {
+        print(
+          '❌ Target network "$targetSSID" not found. Device not in range of college.',
+        );
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Device not in range of college';
+        });
+      }
+    } catch (e) {
+      print('Error scanning for WiFi: $e');
+      setState(() {
+        errorMessage = 'Error scanning for WiFi: $e';
+        isLoading = false;
+        isScanningWiFi = false;
+      });
+    }
   }
 
   Future<void> _fetchActiveSessions() async {
@@ -293,7 +388,7 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchActiveSessions,
+            onPressed: _checkWiFiRangeAndFetchSessions,
           ),
         ],
       ),
@@ -302,15 +397,78 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
   }
 
   Widget _buildBody() {
-    if (isLoading) {
+    if (isLoading || isScanningWiFi) {
       return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA50C22)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA50C22)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Scanning for college WiFi network...',
+              style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+            ),
+          ],
         ),
       );
     }
 
     if (errorMessage != null) {
+      // Check if it's the specific "not in range" error
+      if (errorMessage == 'Device not in range of college') {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.location_off_outlined,
+                  color: Color(0xFF9CA3AF),
+                  size: 80,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Device not in range of college',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    color: const Color(0xFF6B7280),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please make sure you are within the college campus and connected to the college WiFi network to access active sessions.',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: const Color(0xFF9CA3AF),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _checkWiFiRangeAndFetchSessions,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry Scan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFA50C22),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Handle other errors
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -333,7 +491,7 @@ class _ActiveSessionsScreenState extends State<ActiveSessionsScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _fetchActiveSessions,
+                onPressed: _checkWiFiRangeAndFetchSessions,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFA50C22),
                   foregroundColor: Colors.white,
